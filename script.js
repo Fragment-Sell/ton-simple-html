@@ -2,25 +2,37 @@
 class TONTransferApp {
     constructor() {
         this.tonConnectUI = null;
-        this.isConnected = false;
         this.init();
     }
 
     init() {
         try {
-            // ✅ Initialize dengan local library
+            // ✅ Inisialisasi TON Connect SDK
             this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
                 manifestUrl: window.location.origin + '/ton-simple-html/tonconnect-manifest.json'
             });
 
+            // ✅ Daftarkan listener status di awal
+            this.setupConnectionListener();
+            
+            // ✅ Setup event listeners untuk tombol
             this.setupEventListeners();
-            this.checkConnection();
             
             console.log('TON Connect UI initialized successfully');
         } catch (error) {
             console.error('Failed to initialize TON Connect:', error);
             this.showStatus('Failed to initialize wallet connection', 'error');
         }
+    }
+
+    setupConnectionListener() {
+        this.tonConnectUI.onStatusChange((wallet) => {
+            if (wallet) {
+                this.onWalletConnected(wallet);
+            } else {
+                this.onWalletDisconnected();
+            }
+        });
     }
 
     setupEventListeners() {
@@ -42,44 +54,16 @@ class TONTransferApp {
         });
     }
 
-    async checkConnection() {
-        try {
-            const wallet = await this.tonConnectUI.getWallet();
-            if (wallet) {
-                this.onWalletConnected(wallet);
-            }
-        } catch (error) {
-            console.log('No wallet connected');
-        }
-    }
-
     async connectWallet() {
-        try {
-            this.showStatus('Opening wallet...', 'loading');
-            
-            // ✅ Simple connection - biarkan TON Connect handle modal
-            await this.tonConnectUI.connectWallet();
-            
-            // Connection result akan ditangani oleh event listener
-        } catch (error) {
-            this.showStatus('Connection failed: ' + error.message, 'error');
-        }
-    }
-
-    // ✅ Event listener untuk connection changes
-    setupConnectionListener() {
-        this.tonConnectUI.onStatusChange((wallet) => {
-            if (wallet) {
-                this.onWalletConnected(wallet);
-            } else {
-                this.onWalletDisconnected();
-            }
-        });
+        this.showStatus('Opening wallet...', 'loading');
+        // ✅ Panggil connectWallet tanpa await.
+        // Hasilnya akan ditangani oleh listener yang sudah didaftarkan.
+        this.tonConnectUI.connectWallet()
+            .then(() => this.showStatus('Waiting for wallet approval...', 'info'))
+            .catch((error) => this.showStatus('Connection failed: ' + error.message, 'error'));
     }
 
     onWalletConnected(wallet) {
-        this.isConnected = true;
-        
         // Update UI
         document.getElementById('connectionSection').style.display = 'none';
         document.getElementById('transferSection').style.display = 'block';
@@ -88,14 +72,9 @@ class TONTransferApp {
         document.getElementById('walletAddress').textContent = shortAddress;
         
         this.showStatus('✅ Wallet connected!', 'success');
-        
-        // Setup listener setelah connected
-        this.setupConnectionListener();
     }
 
     onWalletDisconnected() {
-        this.isConnected = false;
-        
         document.getElementById('connectionSection').style.display = 'block';
         document.getElementById('transferSection').style.display = 'none';
         
@@ -108,7 +87,8 @@ class TONTransferApp {
     }
 
     async sendTransaction() {
-        if (!this.isConnected) {
+        const wallet = this.tonConnectUI.getWallet();
+        if (!wallet) {
             this.showStatus('Please connect wallet first', 'error');
             return;
         }
@@ -122,7 +102,7 @@ class TONTransferApp {
         }
 
         if (!amount || parseFloat(amount) <= 0) {
-            this.showStatus('Please enter valid amount', 'error');
+            this.showStatus('Please enter a valid amount', 'error');
             return;
         }
 
@@ -145,9 +125,11 @@ class TONTransferApp {
             const result = await this.tonConnectUI.sendTransaction(transaction);
             this.showStatus('✅ Transaction successful!', 'success');
             this.clearForm();
+            console.log('Transaction result:', result);
             
         } catch (error) {
-            this.showStatus('❌ Transaction failed', 'error');
+            console.error('Transaction failed:', error);
+            this.showStatus('❌ Transaction failed: ' + error.message, 'error');
         } finally {
             const btn = document.getElementById('transferButton');
             btn.disabled = false;
@@ -168,7 +150,7 @@ class TONTransferApp {
         statusEl.className = `status-message status-${type}`;
         statusEl.style.display = 'block';
         
-        if (type === 'success') {
+        if (type === 'success' || type === 'error') {
             setTimeout(() => statusEl.style.display = 'none', 5000);
         }
     }

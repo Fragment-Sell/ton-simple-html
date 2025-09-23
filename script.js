@@ -49,10 +49,13 @@ class TONTransferApp {
         });
     }
 
-    connectWallet() {
-        // Biarkan SDK yang menangani alur koneksi sepenuhnya
-        this.tonConnectUI.connectWallet();
-        this.showStatus('Waiting for wallet approval...', 'loading');
+    async connectWallet() {
+        try {
+            this.showStatus('Opening wallet...', 'loading');
+            await this.tonConnectUI.connectWallet();
+        } catch (error) {
+            this.showStatus('Connection failed: ' + error.message, 'error');
+        }
     }
 
     onWalletConnected(wallet) {
@@ -77,7 +80,8 @@ class TONTransferApp {
     }
 
     async sendTransaction() {
-        const wallet = this.tonConnectUI.wallet;
+        // ✅ FIX: Gunakan property yang benar
+        const wallet = this.tonConnectUI.wallet; // atau this.tonConnectUI.connected
         
         if (!wallet) {
             this.showStatus('Please connect wallet first', 'error');
@@ -87,8 +91,13 @@ class TONTransferApp {
         const recipient = document.getElementById('recipient').value.trim();
         const amount = document.getElementById('amount').value.trim();
 
-        if (!recipient || !amount || parseFloat(amount) <= 0) {
-            this.showStatus('Please fill all fields correctly', 'error');
+        if (!recipient) {
+            this.showStatus('Please enter recipient address', 'error');
+            return;
+        }
+
+        if (!amount || parseFloat(amount) <= 0) {
+            this.showStatus('Please enter a valid amount', 'error');
             return;
         }
 
@@ -101,7 +110,7 @@ class TONTransferApp {
             const amountInNano = (parseFloat(amount) * 1000000000).toString();
 
             const transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 600, // 10 menit
+                validUntil: Math.floor(Date.now() / 1000) + 300,
                 messages: [{
                     address: recipient,
                     amount: amountInNano
@@ -113,16 +122,7 @@ class TONTransferApp {
             this.clearForm();
             
         } catch (error) {
-            console.error('Transaction error:', error);
-            let errorMessage = '❌ Transaction failed.';
-            
-            if (error.message.includes('User cancelled') || error.message.includes('User rejection')) {
-                errorMessage = '❌ Transaction cancelled by user.';
-            } else {
-                errorMessage = `❌ Transaction failed: ${error.message}`;
-            }
-
-            this.showStatus(errorMessage, 'error');
+            this.showStatus('❌ Transaction failed: ' + error.message, 'error');
         } finally {
             const btn = document.getElementById('transferButton');
             btn.disabled = false;

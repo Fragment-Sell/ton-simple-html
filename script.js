@@ -82,64 +82,70 @@ class TONTransferApp {
     }
 
     async sendTransaction() {
-        const wallet = this.tonConnectUI.wallet;
-        
-        if (!wallet) {
-            this.showStatus('Please connect wallet first', 'error');
-            return;
-        }
-
-        const recipient = document.getElementById('recipient').value.trim();
-        const amount = document.getElementById('amount').value.trim();
-
-        if (!recipient) {
-            this.showStatus('Please enter recipient address', 'error');
-            return;
-        }
-
-        if (!amount || parseFloat(amount) <= 0) {
-            this.showStatus('Please enter a valid amount', 'error');
-            return;
-        }
-
-        try {
-            this.showStatus('Preparing transaction...', 'loading');
-            const btn = document.getElementById('transferButton');
-            btn.disabled = true;
-            btn.textContent = 'Processing...';
-
-            const amountInNano = (parseFloat(amount) * 1000000000).toString();
-
-            const transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 300,
-                messages: [{
-                    address: recipient,
-                    amount: amountInNano
-                }]
-            };
-
-            const result = await this.tonConnectUI.sendTransaction(transaction);
-            this.showStatus('✅ Transaction successful!', 'success');
-            this.clearForm();
-            console.log('Transaction result:', result);
-            
-        } catch (error) {
-            console.error('Transaction failed:', error);
-            let errorMessage = '❌ Transaction failed.';
-            
-            if (error.message.includes('User cancelled') || error.message.includes('User rejection')) {
-                errorMessage = '❌ Transaction cancelled by user.';
-            } else {
-                errorMessage = `❌ Transaction failed: ${error.message}`;
-            }
-
-            this.showStatus(errorMessage, 'error');
-        } finally {
-            const btn = document.getElementById('transferButton');
-            btn.disabled = false;
-            btn.textContent = 'Send TON';
-        }
+    const wallet = this.tonConnectUI.wallet;
+    
+    if (!wallet) {
+        this.showStatus('Please connect wallet first', 'error');
+        return;
     }
+
+    const recipient = document.getElementById('recipient').value.trim();
+    const amount = document.getElementById('amount').value.trim();
+
+    if (!recipient || !amount || parseFloat(amount) <= 0) {
+        this.showStatus('Please fill all fields correctly', 'error');
+        return;
+    }
+
+    try {
+        this.showStatus('Preparing transaction...', 'loading');
+        const btn = document.getElementById('transferButton');
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+
+        // ✅ PASTIKAN FORMAT NUMBER YANG BENAR
+        const amountInNano = Math.floor(parseFloat(amount) * 1000000000).toString();
+
+        // ✅ TRANSACTION OBJECT YANG LEBIH SIMPLE
+        const transaction = {
+            validUntil: Math.floor(Date.now() / 1000) + 600, // 10 menit
+            messages: [
+                {
+                    address: recipient.trim(),
+                    amount: amountInNano
+                }
+            ]
+        };
+
+        console.log('Transaction payload:', transaction);
+
+        // ✅ TRY ALTERNATIVE SEND METHOD
+        this.showStatus('Opening wallet...', 'loading');
+        
+        const result = await this.tonConnectUI.sendTransaction(transaction);
+        
+        this.showStatus('✅ Transaction sent to blockchain!', 'success');
+        this.clearForm();
+        
+        console.log('Transaction result:', result);
+
+    } catch (error) {
+        console.error('Transaction error:', error);
+        
+        // ✅ ERROR HANDLING YANG LEBIH SPECIFIC
+        if (error.message.includes('User rejection')) {
+            this.showStatus('❌ Transaction cancelled by user', 'error');
+        } else if (error.message.includes('timeout')) {
+            this.showStatus('❌ Request timeout - try again', 'error');
+        } else {
+            this.showStatus('❌ Transaction failed: ' + error.message, 'error');
+        }
+    } finally {
+        const btn = document.getElementById('transferButton');
+        btn.disabled = false;
+        btn.textContent = 'Send TON';
+    }
+}
 
     clearForm() {
         document.getElementById('recipient').value = '';

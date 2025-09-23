@@ -9,7 +9,7 @@ class TONTransferApp {
     init() {
         // Initialize TON Connect
         this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: window.location.origin + '/tonconnect-manifest.json'
+            manifestUrl: window.location.origin + '/ton-simple-html/tonconnect-manifest.json'
         });
 
         this.setupEventListeners();

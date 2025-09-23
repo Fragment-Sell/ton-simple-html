@@ -1,4 +1,4 @@
-// TON Connect Manager
+// TON Transfer App - Simple & Working Version
 class TONTransferApp {
     constructor() {
         this.tonConnectUI = null;
@@ -7,36 +7,36 @@ class TONTransferApp {
     }
 
     init() {
-        // ✅ FIX: Konfigurasi untuk avoid CDN issues
-        this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: window.location.origin + '/ton-simple-html/tonconnect-manifest.json',
-            // ✅ Optional: disable embedded UI
-            uiPreferences: {
-                theme: 'DARK'
-            }
-        });
-        
-        this.setupEventListeners();
-        this.checkConnection();
+        try {
+            // ✅ Initialize dengan local library
+            this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+                manifestUrl: window.location.origin + '/ton-simple-html/tonconnect-manifest.json'
+            });
+
+            this.setupEventListeners();
+            this.checkConnection();
+            
+            console.log('TON Connect UI initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize TON Connect:', error);
+            this.showStatus('Failed to initialize wallet connection', 'error');
+        }
     }
 
     setupEventListeners() {
-        // Connect Button
         document.getElementById('connectButton').addEventListener('click', () => {
             this.connectWallet();
         });
 
-        // Transfer Button
         document.getElementById('transferButton').addEventListener('click', () => {
             this.sendTransaction();
         });
 
-        // Disconnect Button
         document.getElementById('disconnectButton').addEventListener('click', () => {
             this.disconnectWallet();
         });
 
-        // Message character count
+        // Message counter
         document.getElementById('message').addEventListener('input', (e) => {
             document.querySelector('.char-count').textContent = e.target.value.length + '/100';
         });
@@ -44,9 +44,9 @@ class TONTransferApp {
 
     async checkConnection() {
         try {
-            const connected = await this.tonConnectUI.connected;
-            if (connected) {
-                this.onWalletConnected(connected);
+            const wallet = await this.tonConnectUI.getWallet();
+            if (wallet) {
+                this.onWalletConnected(wallet);
             }
         } catch (error) {
             console.log('No wallet connected');
@@ -57,54 +57,54 @@ class TONTransferApp {
         try {
             this.showStatus('Opening wallet...', 'loading');
             
-            // ✅ Force direct connection tanpa wallet list modal
-            const provider = this.tonConnectUI;
-            await provider.connectWallet();
+            // ✅ Simple connection - biarkan TON Connect handle modal
+            await this.tonConnectUI.connectWallet();
             
-            // Connection status akan dihandle oleh onStatusChange
+            // Connection result akan ditangani oleh event listener
         } catch (error) {
-            this.showStatus('Failed to connect: ' + error.message, 'error');
+            this.showStatus('Connection failed: ' + error.message, 'error');
         }
     }
-    onWalletConnected(account) {
+
+    // ✅ Event listener untuk connection changes
+    setupConnectionListener() {
+        this.tonConnectUI.onStatusChange((wallet) => {
+            if (wallet) {
+                this.onWalletConnected(wallet);
+            } else {
+                this.onWalletDisconnected();
+            }
+        });
+    }
+
+    onWalletConnected(wallet) {
         this.isConnected = true;
         
         // Update UI
         document.getElementById('connectionSection').style.display = 'none';
         document.getElementById('transferSection').style.display = 'block';
         
-        // Display wallet address
-        const shortAddress = account.address.slice(0, 8) + '...' + account.address.slice(-6);
+        const shortAddress = wallet.account.address.slice(0, 8) + '...' + wallet.account.address.slice(-6);
         document.getElementById('walletAddress').textContent = shortAddress;
         
-        this.showStatus('Wallet connected successfully!', 'success');
+        this.showStatus('✅ Wallet connected!', 'success');
         
-        // Listen for disconnection
-        this.tonConnectUI.onStatusChange((wallet) => {
-            if (!wallet) {
-                this.onWalletDisconnected();
-            }
-        });
+        // Setup listener setelah connected
+        this.setupConnectionListener();
     }
 
     onWalletDisconnected() {
         this.isConnected = false;
         
-        // Update UI
         document.getElementById('connectionSection').style.display = 'block';
         document.getElementById('transferSection').style.display = 'none';
         
-        // Clear form
-        document.getElementById('recipient').value = '';
-        document.getElementById('amount').value = '';
-        document.getElementById('message').value = '';
-        
+        this.clearForm();
         this.showStatus('Wallet disconnected', 'info');
     }
 
     async disconnectWallet() {
         await this.tonConnectUI.disconnect();
-        this.onWalletDisconnected();
     }
 
     async sendTransaction() {
@@ -115,9 +115,7 @@ class TONTransferApp {
 
         const recipient = document.getElementById('recipient').value.trim();
         const amount = document.getElementById('amount').value.trim();
-        const message = document.getElementById('message').value.trim();
 
-        // Validation
         if (!recipient) {
             this.showStatus('Please enter recipient address', 'error');
             return;
@@ -130,59 +128,38 @@ class TONTransferApp {
 
         try {
             this.showStatus('Preparing transaction...', 'loading');
-            document.getElementById('transferButton').classList.add('loading');
-            document.getElementById('transferButton').textContent = 'Processing...';
+            const btn = document.getElementById('transferButton');
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
 
-            // Convert TON to nanotons (1 TON = 1,000,000,000 nanotons)
             const amountInNano = (parseFloat(amount) * 1000000000).toString();
 
             const transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 300, // 5 minutes
-                messages: [
-                    {
-                        address: recipient,
-                        amount: amountInNano,
-                        ...(message && { 
-                            payload: this.encodeMessage(message) 
-                        })
-                    }
-                ]
+                validUntil: Math.floor(Date.now() / 1000) + 300,
+                messages: [{
+                    address: recipient,
+                    amount: amountInNano
+                }]
             };
 
-            this.showStatus('Confirm transaction in your wallet...', 'loading');
-            
             const result = await this.tonConnectUI.sendTransaction(transaction);
-            
-            this.showStatus('Transaction successful!', 'success');
-            
-            // Clear form
-            document.getElementById('recipient').value = '';
-            document.getElementById('amount').value = '';
-            document.getElementById('message').value = '';
-            
-            console.log('Transaction result:', result);
+            this.showStatus('✅ Transaction successful!', 'success');
+            this.clearForm();
             
         } catch (error) {
-            if (error.message.includes('User rejection')) {
-                this.showStatus('Transaction cancelled', 'error');
-            } else {
-                this.showStatus('Transaction failed: ' + error.message, 'error');
-            }
-            console.error('Transaction error:', error);
+            this.showStatus('❌ Transaction failed', 'error');
         } finally {
-            document.getElementById('transferButton').classList.remove('loading');
-            document.getElementById('transferButton').textContent = 'Send TON';
+            const btn = document.getElementById('transferButton');
+            btn.disabled = false;
+            btn.textContent = 'Send TON';
         }
     }
 
-    encodeMessage(message) {
-        // Simple message encoding for TON blockchain
-        const textEncoder = new TextEncoder();
-        const messageBytes = textEncoder.encode(message);
-        
-        return Array.from(messageBytes)
-            .map(byte => byte.toString(16).padStart(2, '0'))
-            .join('');
+    clearForm() {
+        document.getElementById('recipient').value = '';
+        document.getElementById('amount').value = '';
+        document.getElementById('message').value = '';
+        document.querySelector('.char-count').textContent = '0/100';
     }
 
     showStatus(message, type = 'info') {
@@ -191,16 +168,17 @@ class TONTransferApp {
         statusEl.className = `status-message status-${type}`;
         statusEl.style.display = 'block';
         
-        // Auto-hide success messages
         if (type === 'success') {
-            setTimeout(() => {
-                statusEl.style.display = 'none';
-            }, 5000);
+            setTimeout(() => statusEl.style.display = 'none', 5000);
         }
     }
 }
 
-// Initialize app when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    window.tonApp = new TONTransferApp();
-});
+// Initialize when ready
+if (typeof TON_CONNECT_UI !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.tonApp = new TONTransferApp();
+    });
+} else {
+    console.error('TON Connect UI library not loaded');
+}

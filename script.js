@@ -7,11 +7,15 @@ class TONTransferApp {
     }
 
     init() {
-        // Initialize TON Connect
+        // ✅ FIX: Konfigurasi untuk avoid CDN issues
         this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: window.location.origin + '/ton-simple-html/tonconnect-manifest.json'
+            manifestUrl: window.location.origin + '/ton-simple-html/tonconnect-manifest.json',
+            // ✅ Optional: disable embedded UI
+            uiPreferences: {
+                theme: 'DARK'
+            }
         });
-
+        
         this.setupEventListeners();
         this.checkConnection();
     }
@@ -51,13 +55,17 @@ class TONTransferApp {
 
     async connectWallet() {
         try {
-            this.showStatus('Connecting to wallet...', 'loading');
-            await this.tonConnectUI.connectWallet();
+            this.showStatus('Opening wallet...', 'loading');
+            
+            // ✅ Force direct connection tanpa wallet list modal
+            const provider = this.tonConnectUI;
+            await provider.connectWallet();
+            
+            // Connection status akan dihandle oleh onStatusChange
         } catch (error) {
-            this.showStatus('Connection cancelled', 'error');
+            this.showStatus('Failed to connect: ' + error.message, 'error');
         }
     }
-
     onWalletConnected(account) {
         this.isConnected = true;
         

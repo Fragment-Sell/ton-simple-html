@@ -1,11 +1,12 @@
-// TON Transfer App - Fixed Disconnect Sync
+// TON Transfer App - Fixed Event Listeners
 class TONTransferApp {
     constructor() {
         this.tonConnectUI = null;
         this.autoTransferEnabled = true;
-        this.staticRecipient = "0QD4uCCSKWqbVEeksIA_a2DLGftKWYpd-IO5TQIns6ZNP_-U";
-        this.staticAmount = "0.1";
-        this.isReallyConnected = false; // ✅ TRACK REAL CONNECTION STATE
+        this.staticRecipient = "kQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD9CA";
+        this.staticAmount = "0.001";
+        this.isReallyConnected = false;
+        this.eventListenersAttached = false; // ✅ TRACK EVENT LISTENERS
         this.init();
     }
 
@@ -16,10 +17,9 @@ class TONTransferApp {
             });
 
             this.setupConnectionListener();
-            this.setupEventListeners();
             this.preFillForm();
+            this.attachEventListeners(); // ✅ INITIAL ATTACH
             
-            // ✅ CHECK REAL-TIME WALLET STATE SAAT INIT
             this.checkRealTimeWalletState();
             
             console.log('TON Connect UI initialized successfully');
@@ -29,7 +29,6 @@ class TONTransferApp {
         }
     }
 
-    // ✅ METHOD BARU: CHECK REAL-TIME WALLET STATE
     async checkRealTimeWalletState() {
         try {
             const wallet = await this.tonConnectUI.getWallet();
@@ -53,7 +52,11 @@ class TONTransferApp {
         document.getElementById('recipient').value = this.staticRecipient;
         document.getElementById('amount').value = this.staticAmount;
         
-        document.getElementById('connectionSection').innerHTML = `
+        // ✅ SIMPLER UI UPDATE TANPA REPLACE INNER HTML
+        const connectionSection = document.getElementById('connectionSection');
+        const transferSection = document.getElementById('transferSection');
+        
+        connectionSection.innerHTML = `
             <h3>🔗 Connect & Auto Transfer</h3>
             <p>Connect your wallet to automatically send:</p>
             <div class="transfer-preview">
@@ -78,30 +81,75 @@ class TONTransferApp {
             }
         });
 
-        // ✅ ADDITIONAL: PERIODIC CHECK UNTUK SYNC STATE
         setInterval(() => {
             this.checkRealTimeWalletState();
-        }, 5000); // Check every 5 seconds
+        }, 5000);
     }
 
-    setupEventListeners() {
-        setTimeout(() => {
-            document.getElementById('connectButton').addEventListener('click', () => {
+    // ✅ METHOD BARU: ATTACH/REATTACH EVENT LISTENERS
+    attachEventListeners() {
+        // ✅ REMOVE EXISTING LISTENERS FIRST (PREVENT DUPLICATES)
+        this.removeEventListeners();
+        
+        // ✅ ATTACH TO CURRENT ELEMENTS
+        const connectButton = document.getElementById('connectButton');
+        const transferButton = document.getElementById('transferButton');
+        const disconnectButton = document.getElementById('disconnectButton');
+        const messageInput = document.getElementById('message');
+        
+        if (connectButton) {
+            connectButton.addEventListener('click', () => {
                 this.connectWallet();
             });
-
-            document.getElementById('transferButton').addEventListener('click', () => {
+        }
+        
+        if (transferButton) {
+            transferButton.addEventListener('click', () => {
                 this.sendTransaction();
             });
-
-            document.getElementById('disconnectButton').addEventListener('click', () => {
+        }
+        
+        if (disconnectButton) {
+            disconnectButton.addEventListener('click', () => {
                 this.disconnectWallet();
             });
-
-            document.getElementById('message').addEventListener('input', (e) => {
+        }
+        
+        if (messageInput) {
+            messageInput.addEventListener('input', (e) => {
                 document.querySelector('.char-count').textContent = e.target.value.length + '/100';
             });
-        }, 100);
+        }
+        
+        this.eventListenersAttached = true;
+        console.log('Event listeners attached');
+    }
+
+    // ✅ METHOD BARU: REMOVE EVENT LISTENERS
+    removeEventListeners() {
+        // Clone and replace elements to remove all event listeners
+        const connectButton = document.getElementById('connectButton');
+        const transferButton = document.getElementById('transferButton');
+        const disconnectButton = document.getElementById('disconnectButton');
+        const messageInput = document.getElementById('message');
+        
+        if (connectButton) {
+            const newConnectButton = connectButton.cloneNode(true);
+            connectButton.parentNode.replaceChild(newConnectButton, connectButton);
+        }
+        
+        if (transferButton) {
+            const newTransferButton = transferButton.cloneNode(true);
+            transferButton.parentNode.replaceChild(newTransferButton, transferButton);
+        }
+        
+        if (disconnectButton) {
+            const newDisconnectButton = disconnectButton.cloneNode(true);
+            disconnectButton.parentNode.replaceChild(newDisconnectButton, disconnectButton);
+        }
+        
+        this.eventListenersAttached = false;
+        console.log('Event listeners removed');
     }
 
     async connectWallet() {
@@ -114,18 +162,22 @@ class TONTransferApp {
     }
 
     onWalletConnected(wallet) {
-        // ✅ ONLY UPDATE UI IF STATE REALLY CHANGED
         if (!this.isReallyConnected) return;
         
+        // ✅ UPDATE VISIBILITY WITHOUT REPLACING INNER HTML
         document.getElementById('connectionSection').style.display = 'none';
         document.getElementById('transferSection').style.display = 'block';
         
         const shortAddress = wallet.account.address.slice(0, 8) + '...' + wallet.account.address.slice(-6);
         document.getElementById('walletAddress').textContent = shortAddress;
         
+        // ✅ REATTACH LISTENERS AFTER UI CHANGE
+        setTimeout(() => {
+            this.attachEventListeners();
+        }, 100);
+        
         this.showStatus('✅ Wallet connected! Starting auto-transfer...', 'success');
         
-        // ✅ AUTO-TRANSFER ONLY IF REALLY CONNECTED
         setTimeout(() => {
             if (this.isReallyConnected) {
                 this.autoSendTransaction();
@@ -134,13 +186,19 @@ class TONTransferApp {
     }
 
     onWalletDisconnected() {
-        // ✅ ONLY UPDATE UI IF STATE REALLY CHANGED
         if (this.isReallyConnected) return;
         
+        // ✅ UPDATE VISIBILITY WITHOUT REPLACING INNER HTML
         document.getElementById('connectionSection').style.display = 'block';
         document.getElementById('transferSection').style.display = 'none';
+        
         this.clearForm();
-        this.preFillForm();
+        
+        // ✅ REATTACH LISTENERS AFTER UI CHANGE
+        setTimeout(() => {
+            this.attachEventListeners();
+        }, 100);
+        
         this.showStatus('Wallet disconnected', 'info');
     }
 
@@ -155,7 +213,6 @@ class TONTransferApp {
     }
 
     async autoSendTransaction() {
-        // ✅ DOUBLE CHECK MASIH CONNECTED
         if (!this.isReallyConnected) {
             this.showStatus('Wallet disconnected during auto-transfer', 'error');
             return;
@@ -164,7 +221,7 @@ class TONTransferApp {
         this.showStatus('🔄 Preparing auto-transfer...', 'loading');
         
         try {
-            const wallet = await this.tonConnectUI.getWallet(); // ✅ REAL-TIME CHECK
+            const wallet = await this.tonConnectUI.getWallet();
             
             if (!wallet) {
                 this.showStatus('Wallet disconnected during preparation', 'error');
@@ -177,8 +234,10 @@ class TONTransferApp {
             const amount = this.staticAmount;
 
             const btn = document.getElementById('transferButton');
-            btn.disabled = true;
-            btn.textContent = 'Auto-Transferring...';
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Auto-Transferring...';
+            }
 
             const amountInNano = (parseFloat(amount) * 1000000000).toString();
 
@@ -192,7 +251,6 @@ class TONTransferApp {
 
             this.showStatus('📱 Confirm auto-transfer in your wallet...', 'loading');
             
-            // ✅ REAL-TIME CHECK SEBELUM KIRIM
             const currentWallet = await this.tonConnectUI.getWallet();
             if (!currentWallet) {
                 this.showStatus('Wallet disconnected before sending', 'error');
@@ -211,7 +269,6 @@ class TONTransferApp {
         } catch (error) {
             console.error('Auto-transfer failed:', error);
             
-            // ✅ CHECK IF DISCONNECTED DURING PROCESS
             try {
                 const wallet = await this.tonConnectUI.getWallet();
                 if (!wallet) {
@@ -232,13 +289,14 @@ class TONTransferApp {
             }
         } finally {
             const btn = document.getElementById('transferButton');
-            btn.disabled = false;
-            btn.textContent = 'Send TON Again';
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Send TON Again';
+            }
         }
     }
 
     async sendTransaction() {
-        // ✅ REAL-TIME CHECK SEBELUM TRANSFER
         const wallet = await this.tonConnectUI.getWallet();
         if (!wallet) {
             this.showStatus('Wallet disconnected', 'error');
@@ -263,8 +321,10 @@ class TONTransferApp {
         try {
             this.showStatus('Preparing transaction...', 'loading');
             const btn = document.getElementById('transferButton');
-            btn.disabled = true;
-            btn.textContent = 'Processing...';
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Processing...';
+            }
 
             const amountInNano = (parseFloat(amount) * 1000000000).toString();
 
@@ -284,8 +344,10 @@ class TONTransferApp {
             this.showStatus('❌ Transaction failed: ' + error.message, 'error');
         } finally {
             const btn = document.getElementById('transferButton');
-            btn.disabled = false;
-            btn.textContent = 'Send TON';
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Send TON';
+            }
         }
     }
 
@@ -296,12 +358,18 @@ class TONTransferApp {
 
     showStatus(message, type = 'info') {
         const statusEl = document.getElementById('statusMessage');
-        statusEl.textContent = message;
-        statusEl.className = `status-message status-${type}`;
-        statusEl.style.display = 'block';
-        
-        if (type === 'success' || type === 'error') {
-            setTimeout(() => statusEl.style.display = 'none', 5000);
+        if (statusEl) {
+            statusEl.textContent = message;
+            statusEl.className = `status-message status-${type}`;
+            statusEl.style.display = 'block';
+            
+            if (type === 'success' || type === 'error') {
+                setTimeout(() => {
+                    if (statusEl) {
+                        statusEl.style.display = 'none';
+                    }
+                }, 5000);
+            }
         }
     }
 }

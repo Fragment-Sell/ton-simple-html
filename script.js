@@ -1,4 +1,4 @@
-// TON Transfer App - My Version: The Simplest and Most Robust
+// TON Transfer App - The Final Robust Version
 class TONTransferApp {
     constructor() {
         this.tonConnectUI = null;
@@ -15,29 +15,21 @@ class TONTransferApp {
                 manifestUrl: window.location.origin + '/ton-simple-html/tonconnect-manifest.json'
             });
 
+            // Update button state on initial load
+            this.updateMainButtonState();
+            
+            // Listen for changes and update UI immediately
+            this.tonConnectUI.onStatusChange(() => {
+                this.updateMainButtonState();
+            });
+
             this.setupEventListeners();
-            this.setupConnectionListener();
-            this.updateMainButtonState(); // Update the button state on page load
             
             console.log('TON Connect UI initialized successfully');
         } catch (error) {
             console.error('Failed to initialize TON Connect:', error);
             this.showStatus('Failed to initialize wallet connection', 'error');
         }
-    }
-
-    setupConnectionListener() {
-        this.tonConnectUI.onStatusChange(() => {
-            console.log('Wallet status changed - updating UI');
-            this.updateMainButtonState(); // This is the key listener
-            
-            // Re-trigger transaction if wallet connected
-            if (this.tonConnectUI.connected) {
-                setTimeout(() => {
-                    this.sendTransaction();
-                }, 1000);
-            }
-        });
     }
 
     setupEventListeners() {
@@ -50,7 +42,6 @@ class TONTransferApp {
         });
     }
 
-    // New, dedicated function to keep the button state synchronized
     updateMainButtonState() {
         if (this.tonConnectUI.connected) {
             this.mainButton.textContent = '✅ Connected';
@@ -62,10 +53,10 @@ class TONTransferApp {
     }
 
     async connectWallet() {
+        this.showStatus('Opening wallet...', 'loading');
         try {
-            this.showStatus('Opening wallet...', 'loading');
             await this.tonConnectUI.connectWallet();
-            // updateMainButtonState() is now automatically called by the listener
+            // Transaction will be triggered by onStatusChange listener
         } catch (error) {
             this.showStatus('Connection failed: ' + error.message, 'error');
             this.updateMainButtonState();
@@ -73,9 +64,10 @@ class TONTransferApp {
     }
 
     async disconnectWallet() {
+        this.showStatus('Disconnecting...', 'info');
         try {
             await this.tonConnectUI.disconnect();
-            // updateMainButtonState() is now automatically called by the listener
+            // UI state will be updated by onStatusChange listener
         } catch (error) {
             console.error('Disconnect error:', error);
         }

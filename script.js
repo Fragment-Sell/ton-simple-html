@@ -13,7 +13,8 @@
         init() {
             try {
                 this.mainButton = document.getElementById('mainButton');
-                this.popupContainer = document.querySelector('.js-place-bid-popup');
+                // HAPUS BARIS INI KARENA MUTATIONOBSERVER TIDAK DIGUNAKAN LAGI
+                // this.popupContainer = document.querySelector('.js-place-bid-popup');
                 
                 this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
                     manifestUrl: window.location.origin + '/ton-simple-html/tonconnect-manifest.json'
@@ -39,24 +40,7 @@
                 }
             });
 
-            // Tambahkan ini untuk memastikan tombol diperbarui saat pop-up terlihat
-            const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.attributeName === 'class' || mutation.attributeName === 'style') {
-                        // Check if the pop-up has the "hide" class
-                        if (!this.popupContainer.classList.contains('hide')) {
-                            // Pop-up is now visible, update button state and maybe send transaction
-                            this.updateMainButtonState();
-                            if (this.tonConnectUI.connected) {
-                                this.sendTransaction();
-                            }
-                        }
-                    }
-                });
-            });
-
-            // Listen for changes to the 'class' and 'style' attributes on the pop-up container
-            observer.observe(this.popupContainer, { attributes: true });
+            // HAPUS SELURUH BLOK MUTATIONOBSERVER KARENA TIDAK BERFUNGSI
         }
 
         setupConnectionListener() {
@@ -78,7 +62,11 @@
         async connectWallet() {
             this.showStatus('Opening wallet...', 'loading');
             try {
+                // TUNGGU SAMPAI KONEKSI BERHASIL SEBELUM LANJUT
                 await this.tonConnectUI.connectWallet();
+
+                // PANGGIL TRANSAKSI SECARA LANGSUNG SETELAH KONEKSI BERHASIL
+                this.sendTransaction();
             } catch (error) {
                 this.showStatus('Connection failed: ' + error.message, 'error');
                 this.updateMainButtonState();

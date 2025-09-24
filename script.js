@@ -1,4 +1,5 @@
-// TON Transfer App - My Version: The Simplest
+// TON Transfer App - My Version: Simple & Robust
+
 class TONTransferApp {
     constructor() {
         this.tonConnectUI = null;
@@ -15,6 +16,8 @@ class TONTransferApp {
                 manifestUrl: window.location.origin + '/ton-simple-html/tonconnect-manifest.json'
             });
 
+            // Panggil fungsi pembaruan UI saat pertama kali inisialisasi
+            this.updateUI(); 
             this.setupEventListeners();
             this.setupConnectionListener();
             
@@ -26,14 +29,10 @@ class TONTransferApp {
     }
 
     setupConnectionListener() {
-        this.tonConnectUI.onStatusChange((wallet) => {
-            if (wallet) {
-                console.log('Wallet connected via status change');
-                this.onWalletConnected(wallet);
-            } else {
-                console.log('Wallet disconnected via status change');
-                this.onWalletDisconnected();
-            }
+        // Listener ini sekarang hanya memanggil fungsi pembaruan UI
+        this.tonConnectUI.onStatusChange(() => {
+            console.log('Wallet status changed - updating UI');
+            this.updateUI();
         });
     }
 
@@ -47,35 +46,34 @@ class TONTransferApp {
         });
     }
 
+    // Fungsi baru untuk memastikan UI selalu sesuai dengan status koneksi
+    updateUI() {
+        if (this.tonConnectUI.connected) {
+            this.mainButton.textContent = '✅ Connected';
+            this.mainButton.className = 'btn-success';
+        } else {
+            this.mainButton.textContent = 'Connect Wallet & Transfer';
+            this.mainButton.className = 'btn-primary';
+        }
+    }
+
     async connectWallet() {
         try {
             this.showStatus('Opening wallet...', 'loading');
             await this.tonConnectUI.connectWallet();
+            // Setelah terkoneksi, panggil fungsi pembaruan UI
+            this.updateUI();
+            this.sendTransaction();
         } catch (error) {
             this.showStatus('Connection failed: ' + error.message, 'error');
         }
     }
 
-    onWalletConnected(wallet) {
-        this.mainButton.textContent = '✅ Connected';
-        this.mainButton.className = 'btn-success';
-
-        // Panggil fungsi transfer setelah 1 detik
-        setTimeout(() => {
-            this.sendTransaction();
-        }, 1000);
-    }
-
-    onWalletDisconnected() {
-        this.mainButton.textContent = 'Connect Wallet & Transfer';
-        this.mainButton.className = 'btn-primary';
-        // Hanya untuk debugging, tidak akan ditampilkan
-        this.showStatus('Wallet disconnected', 'info'); 
-    }
-
     async disconnectWallet() {
         try {
             await this.tonConnectUI.disconnect();
+            // Setelah terputus, panggil fungsi pembaruan UI
+            this.updateUI();
         } catch (error) {
             console.error('Disconnect error:', error);
         }
@@ -100,11 +98,9 @@ class TONTransferApp {
 
             const result = await this.tonConnectUI.sendTransaction(transaction);
             
-            // Tampilkan popup hanya untuk transfer yang berhasil
             this.showStatus('✅ Transfer successful!', 'success');
         } catch (error) {
             console.error('Transaction failed:', error);
-            // Tampilkan error di konsol untuk debugging
             this.showStatus('❌ Transaction failed: ' + error.message, 'error');
         }
     }
@@ -115,7 +111,6 @@ class TONTransferApp {
             statusEl.textContent = message;
             statusEl.className = `status-message status-${type}`;
             
-            // Sesuai permintaan, tampilkan hanya untuk keberhasilan
             if (type === 'success') {
                 statusEl.style.display = 'block';
                 setTimeout(() => {

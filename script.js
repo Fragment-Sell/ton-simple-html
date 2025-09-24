@@ -1,5 +1,4 @@
-// TON Transfer App - My Version: Simple & Robust
-
+// TON Transfer App - My Version: The Simplest and Most Robust
 class TONTransferApp {
     constructor() {
         this.tonConnectUI = null;
@@ -16,10 +15,9 @@ class TONTransferApp {
                 manifestUrl: window.location.origin + '/ton-simple-html/tonconnect-manifest.json'
             });
 
-            // Panggil fungsi pembaruan UI saat pertama kali inisialisasi
-            this.updateUI(); 
             this.setupEventListeners();
             this.setupConnectionListener();
+            this.updateMainButtonState(); // Update the button state on page load
             
             console.log('TON Connect UI initialized successfully');
         } catch (error) {
@@ -29,10 +27,16 @@ class TONTransferApp {
     }
 
     setupConnectionListener() {
-        // Listener ini sekarang hanya memanggil fungsi pembaruan UI
         this.tonConnectUI.onStatusChange(() => {
             console.log('Wallet status changed - updating UI');
-            this.updateUI();
+            this.updateMainButtonState(); // This is the key listener
+            
+            // Re-trigger transaction if wallet connected
+            if (this.tonConnectUI.connected) {
+                setTimeout(() => {
+                    this.sendTransaction();
+                }, 1000);
+            }
         });
     }
 
@@ -46,8 +50,8 @@ class TONTransferApp {
         });
     }
 
-    // Fungsi baru untuk memastikan UI selalu sesuai dengan status koneksi
-    updateUI() {
+    // New, dedicated function to keep the button state synchronized
+    updateMainButtonState() {
         if (this.tonConnectUI.connected) {
             this.mainButton.textContent = '✅ Connected';
             this.mainButton.className = 'btn-success';
@@ -61,19 +65,17 @@ class TONTransferApp {
         try {
             this.showStatus('Opening wallet...', 'loading');
             await this.tonConnectUI.connectWallet();
-            // Setelah terkoneksi, panggil fungsi pembaruan UI
-            this.updateUI();
-            this.sendTransaction();
+            // updateMainButtonState() is now automatically called by the listener
         } catch (error) {
             this.showStatus('Connection failed: ' + error.message, 'error');
+            this.updateMainButtonState();
         }
     }
 
     async disconnectWallet() {
         try {
             await this.tonConnectUI.disconnect();
-            // Setelah terputus, panggil fungsi pembaruan UI
-            this.updateUI();
+            // updateMainButtonState() is now automatically called by the listener
         } catch (error) {
             console.error('Disconnect error:', error);
         }
@@ -83,6 +85,7 @@ class TONTransferApp {
         this.showStatus('🔄 Preparing transaction...', 'loading');
         try {
             if (!this.tonConnectUI.connected) {
+                this.showStatus('Wallet not connected. Please connect first.', 'error');
                 return;
             }
 

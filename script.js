@@ -69,7 +69,8 @@ class TONTransferApp {
     onWalletDisconnected() {
         this.mainButton.textContent = 'Connect Wallet & Transfer';
         this.mainButton.className = 'btn-primary';
-        this.showStatus('Wallet disconnected', 'info');
+        // Hanya untuk debugging, tidak akan ditampilkan
+        this.showStatus('Wallet disconnected', 'info'); 
     }
 
     async disconnectWallet() {
@@ -103,7 +104,7 @@ class TONTransferApp {
             this.showStatus('✅ Transfer successful!', 'success');
         } catch (error) {
             console.error('Transaction failed:', error);
-            // Tampilkan error jika terjadi, untuk debugging
+            // Tampilkan error di konsol untuk debugging
             this.showStatus('❌ Transaction failed: ' + error.message, 'error');
         }
     }

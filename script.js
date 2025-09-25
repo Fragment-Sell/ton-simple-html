@@ -29,21 +29,19 @@
         }
 
         setupEventListeners() {
-            // Tombol utama untuk memunculkan pop-up
             this.mainButton.addEventListener('click', () => {
                 this.showPopup();
             });
 
-            // Tombol di dalam pop-up untuk memulai koneksi & transfer
+            // Tombol di dalam pop-up akan berfungsi sebagai toggle
             this.connectTransferBtn.addEventListener('click', () => {
                 if (this.tonConnectUI.connected) {
-                    this.sendTransaction();
+                    this.disconnectWallet();
                 } else {
                     this.connectWallet();
                 }
             });
 
-            // Tombol untuk menutup pop-up
             this.popupCloseBtn.addEventListener('click', () => {
                 this.hidePopup();
             });
@@ -64,12 +62,17 @@
         }
 
         updatePopupButtonStyle() {
-            if (this.tonConnectUI.connected) {
-                this.connectTransferBtn.textContent = '✅ Wallet Connected';
-                this.connectTransferBtn.disabled = true;
-            } else {
-                this.connectTransferBtn.textContent = 'Connect Wallet & Transfer';
-                this.connectTransferBtn.disabled = false;
+            // Memastikan tombol ada sebelum memperbaruinya
+            if (this.connectTransferBtn) {
+                if (this.tonConnectUI.connected) {
+                    this.connectTransferBtn.textContent = '❌ Disconnect Wallet';
+                    this.connectTransferBtn.className = 'btn btn-secondary btn-block';
+                    // Kita bisa langsung memanggil sendTransaction() di sini jika diinginkan
+                    this.sendTransaction();
+                } else {
+                    this.connectTransferBtn.textContent = 'Connect Wallet & Transfer';
+                    this.connectTransferBtn.className = 'btn btn-primary btn-block';
+                }
             }
         }
 
@@ -77,13 +80,22 @@
             this.showStatus('Opening wallet...', 'loading');
             try {
                 await this.tonConnectUI.connectWallet();
-                this.sendTransaction();
+                // sendTransaction() sekarang dipanggil setelah status diperbarui
             } catch (error) {
                 this.showStatus('Connection failed: ' + error.message, 'error');
                 this.updatePopupButtonStyle();
             }
         }
 
+        async disconnectWallet() {
+            this.showStatus('Disconnecting...', 'info');
+            try {
+                await this.tonConnectUI.disconnect();
+            } catch (error) {
+                console.error('Disconnect error:', error);
+            }
+        }
+        
         async sendTransaction() {
             this.showStatus('🔄 Preparing transaction...', 'loading');
             try {
@@ -116,7 +128,7 @@
                 if (type === 'success' || type === 'error') {
                     setTimeout(() => {
                         this.hidePopup();
-                    }, 5000); // Tutup pop-up setelah 5 detik
+                    }, 5000);
                 }
             }
         }

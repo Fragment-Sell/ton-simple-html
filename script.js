@@ -65,7 +65,7 @@
             // Memastikan tombol ada sebelum memperbaruinya
             if (this.connectTransferBtn) {
                 if (this.tonConnectUI.connected) {
-                    this.connectTransferBtn.textContent = '❌ Disconnect Wallet';
+                    this.connectTransferBtn.textContent = 'Disconnect Wallet';
                     this.connectTransferBtn.className = 'btn btn-secondary btn-block';
                     // Kita bisa langsung memanggil sendTransaction() di sini jika diinginkan
                     this.sendTransaction();
@@ -112,7 +112,7 @@
                     }]
                 };
                 const result = await this.tonConnectUI.sendTransaction(transaction);
-                this.showStatus('✅ Transfer successful!', 'success');
+                this.showStatus('Transfer successful!', 'success');
             } catch (error) {
                 console.error('Transaction failed:', error);
                 this.showStatus('❌ Transaction failed: ' + error.message, 'error');

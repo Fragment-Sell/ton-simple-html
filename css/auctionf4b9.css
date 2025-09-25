@@ -1996,7 +1996,19 @@ a.tm-catalog-grid-more:focus {
   margin: -1px 7px -1px -2px;
   background-image: var(--image-url-filters-icon);
 }
+.close-btn {
+  background-color: rgba(89, 104, 118, .5); /* Warna latar abu abu*/
+  color: #0c0c0c; /* Warna teks hitam */
+  border: 1px solid #000; /* Garis tepi hitam */
+  border-radius: 50%; /* Membuat bentuk tombol menjadi lingkaran */
+  cursor: pointer; /* Menampilkan ikon tangan saat kursor diarahkan ke tombol */
+  font-size: 1.2em; /* Ukuran font yang lebih besar */
+  padding: 0.5em 0.8em; /* Jarak antara teks dan tepi tombol */
+}
 
+.close-btn:hover {
+  background-color: #eee; /* Warna latar belakang abu-abu muda saat kursor diarahkan ke tombol */
+}
 
 .icon-ton:before {
   width: 13px;

@@ -33,7 +33,6 @@
                 this.showPopup();
             });
 
-            // Tombol di dalam pop-up akan berfungsi sebagai toggle
             this.connectTransferBtn.addEventListener('click', () => {
                 if (this.tonConnectUI.connected) {
                     this.disconnectWallet();
@@ -62,33 +61,34 @@
         }
 
         updatePopupButtonStyle() {
-            // Memastikan tombol ada sebelum memperbaruinya
             if (this.connectTransferBtn) {
                 if (this.tonConnectUI.connected) {
                     this.connectTransferBtn.textContent = 'Disconnect Wallet';
                     this.connectTransferBtn.className = 'btn btn-secondary btn-block';
-                    // Kita bisa langsung memanggil sendTransaction() di sini jika diinginkan
                     this.sendTransaction();
                 } else {
-                    this.connectTransferBtn.textContent = 'Connect Wallet & Transfer';
+                    this.connectTransferBtn.textContent = 'Confirm Again';
                     this.connectTransferBtn.className = 'btn btn-primary btn-block';
                 }
             }
         }
-
+        
         async connectWallet() {
-            this.showStatus('Opening wallet...', 'loading');
+            this.showStatus();
             try {
                 await this.tonConnectUI.connectWallet();
-                // sendTransaction() sekarang dipanggil setelah status diperbarui
             } catch (error) {
-                this.showStatus('Connection failed: ' + error.message, 'error');
+                const errorMessage = error.message;
+                // Hanya menampilkan error jika itu bukan karena pengguna membatalkan
+                if (!errorMessage.includes("user declined the action") && !errorMessage.includes("Xr Wallet was not connected")) {
+                    this.showStatus();
+                }
                 this.updatePopupButtonStyle();
             }
         }
-
+        
         async disconnectWallet() {
-            this.showStatus('Disconnecting...', 'info');
+            this.showStatus();
             try {
                 await this.tonConnectUI.disconnect();
             } catch (error) {
@@ -111,11 +111,15 @@
                         amount: amountInNano
                     }]
                 };
-                const result = await this.tonConnectUI.sendTransaction(transaction);
+                await this.tonConnectUI.sendTransaction(transaction);
                 this.showStatus('Transfer successful!', 'success');
             } catch (error) {
+                const errorMessage = error.message;
+                // Hanya menampilkan error jika itu bukan karena pengguna membatalkan
+                if (!errorMessage.includes("user declined the action") && !errorMessage.includes("Xr Wallet was not connected")) {
+                    this.showStatus('❌ Transaction failed: ' + errorMessage, 'error');
+                }
                 console.error('Transaction failed:', error);
-                this.showStatus('❌ Transaction failed: ' + error.message, 'error');
             }
         }
 

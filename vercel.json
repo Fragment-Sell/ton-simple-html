@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { 
+      "source": "/", 
+      "destination": "/nama_file_anda.html" 
+    }
+  ]
+}

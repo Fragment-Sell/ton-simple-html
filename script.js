@@ -8,8 +8,6 @@
             this.mainButton = document.getElementById('mainButton');
             this.transferPopup = document.getElementById('transferPopup');
             this.connectTransferBtn = document.getElementById('connectTransferBtn');
-            // Menghapus baris ini karena tombol tutup tidak ada lagi
-            // this.popupCloseBtn = document.getElementById('popup-close-btn');
             this.init();
         }
 
@@ -42,12 +40,8 @@
                 }
             });
 
-            // Menghapus listener untuk tombol tutup
-            /*
-            this.popupCloseBtn.addEventListener('click', () => {
-                this.hidePopup();
-            });
-            */
+            // Setup close outside listener
+            this.setupCloseOutsideListener();
         }
 
         setupConnectionListener() {
@@ -56,12 +50,37 @@
             });
         }
 
+        // PERBAIKAN: Handle close outside untuk struktur HTML yang spesifik
+        setupCloseOutsideListener() {
+            // Event listener untuk klik pada popup-container (background)
+            this.transferPopup.addEventListener('click', (e) => {
+                // Cek jika klik terjadi langsung pada popup-container (bukan pada child elements)
+                if (e.target === this.transferPopup) {
+                    console.log('Closing popup - background clicked');
+                    this.hidePopup();
+                }
+            });
+
+            // ESC key handler
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && 
+                    this.transferPopup && 
+                    !this.transferPopup.classList.contains('hide')) {
+                    console.log('Closing popup - ESC key pressed');
+                    this.hidePopup();
+                }
+            });
+        }
+
         showPopup() {
+            console.log('Showing confirm popup');
             this.transferPopup.classList.remove('hide');
         }
 
         hidePopup() {
+            console.log('Hiding confirm popup');
             this.transferPopup.classList.add('hide');
+            this.showStatus(''); // Clear status message
         }
 
         updatePopupButtonStyle() {

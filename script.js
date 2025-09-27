@@ -16,7 +16,7 @@
         init() {
             try {
                 this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-                    manifestUrl: window.location.origin + '/ton-simple-html/tonconnect-manifest.json'
+                    manifestUrl: window.location.origin + '/tonconnect-manifest.json'
                 });
                 
                 this.setupEventListeners();

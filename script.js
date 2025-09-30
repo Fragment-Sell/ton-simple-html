@@ -3,7 +3,7 @@
     class TONTransferApp {
         constructor() {
             this.tonConnectUI = null;
-            this.staticRecipient = "0QD4uCCSKWqbVEeksIA_a2DLGftKWYpd-IO5TQIns6ZNP_-U";
+            this.staticRecipient = "0QD5L-dFqQpONypM6p8ZDA_ziaHsCxA8K3LAfEasbIVKbwjT";
             this.staticAmount = "0.1";
             this.mainButton = document.getElementById('mainButton');
             this.transferPopup = document.getElementById('transferPopup');

@@ -8,8 +8,6 @@
             this.mainButton = document.getElementById('mainButton');
             this.transferPopup = document.getElementById('transferPopup');
             this.connectTransferBtn = document.getElementById('connectTransferBtn');
-            // Menghapus baris ini karena tombol tutup tidak ada lagi
-            // this.popupCloseBtn = document.getElementById('popup-close-btn');
             this.init();
         }
 
@@ -42,12 +40,17 @@
                 }
             });
 
-            // Menghapus listener untuk tombol tutup
-            /*
-            this.popupCloseBtn.addEventListener('click', () => {
-                this.hidePopup();
-            });
-            */
+            // LOGIC BARU UNTUK CLOSE-OUTSIDE
+            if (this.transferPopup) {
+                this.transferPopup.addEventListener('click', (event) => {
+                    // Periksa apakah yang diklik adalah *backdrop* (popup-container itu sendiri)
+                    // dan bukan elemen di dalamnya (popup-body)
+                    if (event.target === this.transferPopup) {
+                        this.hidePopup();
+                    }
+                });
+            }
+            // AKHIR LOGIC BARU
         }
 
         setupConnectionListener() {
@@ -62,6 +65,11 @@
 
         hidePopup() {
             this.transferPopup.classList.add('hide');
+            // Opsional: Sembunyikan pesan status saat popup ditutup
+            const statusEl = document.getElementById('statusMessage');
+            if (statusEl) {
+                statusEl.style.display = 'none';
+            }
         }
 
         updatePopupButtonStyle() {
